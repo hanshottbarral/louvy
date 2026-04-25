@@ -173,7 +173,17 @@ language plpgsql
 security definer
 set search_path = public
 as $$
+declare
+  assigned_role public.app_role := 'MUSICIAN';
 begin
+  if not exists (
+    select 1
+    from public.profiles
+    where role = 'ADMIN'
+  ) then
+    assigned_role := 'ADMIN';
+  end if;
+
   insert into public.profiles (id, name, email)
   values (
     new.id,
@@ -182,6 +192,11 @@ begin
   )
   on conflict (id) do update
     set email = excluded.email;
+
+  update public.profiles
+  set role = assigned_role
+  where id = new.id
+    and role = 'MUSICIAN';
 
   return new;
 end;
@@ -206,14 +221,6 @@ on public.profiles
 for select
 to authenticated
 using (true);
-
-drop policy if exists "profiles_update_self" on public.profiles;
-create policy "profiles_update_self"
-on public.profiles
-for update
-to authenticated
-using (auth.uid() = id)
-with check (auth.uid() = id);
 
 drop policy if exists "schedules_select_member_or_admin" on public.schedules;
 create policy "schedules_select_member_or_admin"

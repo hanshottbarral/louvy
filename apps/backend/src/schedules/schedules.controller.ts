@@ -25,8 +25,8 @@ export class SchedulesController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.schedulesService.findOne(id);
+  findOne(@Param('id') id: string, @CurrentUser() user: { id: string; role: AppRole }) {
+    return this.schedulesService.findOne(id, user.id, user.role);
   }
 
   @Roles(AppRole.ADMIN)
@@ -50,4 +50,3 @@ export class SchedulesController {
     return this.schedulesService.remove(id);
   }
 }
-

@@ -6,7 +6,11 @@ settings:
 
 importers:
 
-  .: {}
+  .:
+    devDependencies:
+      '@next/swc-wasm-nodejs':
+        specifier: 15.5.15
+        version: 15.5.15
 
   apps/backend:
     dependencies:

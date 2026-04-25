@@ -1,4 +1,9 @@
-import { MessageType, ScheduleEventType } from '@louvy/shared';
+import {
+  InstrumentRole,
+  MemberStatus,
+  MessageType,
+  ScheduleEventType,
+} from '@louvy/shared';
 import { MinistrySongView, NotificationView, ScheduleView } from '@/types';
 
 interface ProfileRow {
@@ -22,8 +27,8 @@ interface ScheduleMemberRow {
   id: string;
   schedule_id: string;
   user_id: string;
-  role: 'VOCAL' | 'GUITAR' | 'BASS' | 'DRUMS' | 'KEYS';
-  status: 'CONFIRMED' | 'PENDING' | 'DECLINED';
+  role: keyof typeof InstrumentRole;
+  status: keyof typeof MemberStatus;
 }
 
 interface ScheduleSongRow {
@@ -73,8 +78,8 @@ export function mapSchedules(args: {
         id: member.id,
         userId: member.user_id,
         userName: profileMap.get(member.user_id)?.name ?? 'Membro',
-        role: member.role,
-        status: member.status,
+        role: InstrumentRole[member.role],
+        status: MemberStatus[member.status],
       }));
 
     const scheduleSongs = args.songs
@@ -152,4 +157,3 @@ export function mapNotifications(
     createdAt: notification.created_at,
   }));
 }
-

@@ -2,12 +2,18 @@ import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/co
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { AppRole, AuthTokens } from '@louvy/shared';
+import { Role } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
 import { LoginDto, RegisterDto } from './dto/auth.dto';
 
 @Injectable()
 export class AuthService {
+  private static readonly tokenExpiresIn = (
+    value: string,
+  ): NonNullable<Parameters<JwtService['signAsync']>[1]>['expiresIn'] =>
+    value as NonNullable<Parameters<JwtService['signAsync']>[1]>['expiresIn'];
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
@@ -26,17 +32,25 @@ export class AuthService {
         name: dto.name,
         email: dto.email,
         password: hashedPassword,
-        role: dto.role as AppRole,
+        role: dto.role as Role,
       },
     });
 
-    const tokens = await this.generateTokens(user.id, user.email, user.role as AppRole, user.name);
+    const tokens = await this.generateTokens(user.id, user.email, this.toAppRole(user.role), user.name);
     await this.updateRefreshTokenHash(user.id, tokens.refreshToken);
 
     return {
       user: this.sanitizeUser(user),
       tokens,
     };
+  }
+
+  private get accessTokenExpiresIn() {
+    return AuthService.tokenExpiresIn(this.configService.get<string>('JWT_ACCESS_EXPIRES_IN') ?? '15m');
+  }
+
+  private get refreshTokenExpiresIn() {
+    return AuthService.tokenExpiresIn(this.configService.get<string>('JWT_REFRESH_EXPIRES_IN') ?? '7d');
   }
 
   async login(dto: LoginDto) {
@@ -50,7 +64,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const tokens = await this.generateTokens(user.id, user.email, user.role as AppRole, user.name);
+    const tokens = await this.generateTokens(user.id, user.email, this.toAppRole(user.role), user.name);
     await this.updateRefreshTokenHash(user.id, tokens.refreshToken);
 
     return {
@@ -68,17 +82,14 @@ export class AuthService {
     const payload = { sub: userId, email, role, name };
     const accessSecret = this.configService.get<string>('JWT_ACCESS_SECRET') ?? 'access-secret';
     const refreshSecret = this.configService.get<string>('JWT_REFRESH_SECRET') ?? 'refresh-secret';
-    const accessExpiresIn = this.configService.get<string>('JWT_ACCESS_EXPIRES_IN') ?? '15m';
-    const refreshExpiresIn = this.configService.get<string>('JWT_REFRESH_EXPIRES_IN') ?? '7d';
-
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
         secret: accessSecret,
-        expiresIn: accessExpiresIn,
+        expiresIn: this.accessTokenExpiresIn,
       }),
       this.jwtService.signAsync(payload, {
         secret: refreshSecret,
-        expiresIn: refreshExpiresIn,
+        expiresIn: this.refreshTokenExpiresIn,
       }),
     ]);
 
@@ -93,13 +104,16 @@ export class AuthService {
     });
   }
 
-  private sanitizeUser(user: { id: string; name: string; email: string; role: AppRole }) {
+  private sanitizeUser(user: { id: string; name: string; email: string; role: Role | AppRole }) {
     return {
       id: user.id,
       name: user.name,
       email: user.email,
-      role: user.role,
+      role: user.role === 'ADMIN' ? AppRole.ADMIN : AppRole.MUSICIAN,
     };
   }
-}
 
+  private toAppRole(role: Role): AppRole {
+    return role === Role.ADMIN ? AppRole.ADMIN : AppRole.MUSICIAN;
+  }
+}

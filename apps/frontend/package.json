@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "dev": "node scripts/next-with-wasm.mjs dev",
+    "build": "node scripts/next-with-wasm.mjs build",
+    "start": "node scripts/next-with-wasm.mjs start",
     "lint": "next lint",
     "test": "echo \"No frontend tests configured yet\""
   },

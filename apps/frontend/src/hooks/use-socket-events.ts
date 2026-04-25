@@ -32,36 +32,49 @@ export function useSocketEvents() {
       return;
     }
 
+    let refreshTimeout: ReturnType<typeof setTimeout> | undefined;
+    const queueRefresh = () => {
+      if (refreshTimeout) {
+        clearTimeout(refreshTimeout);
+      }
+      refreshTimeout = setTimeout(() => {
+        void refreshData();
+      }, 250);
+    };
+
     const schedulesChannel = supabase
       .channel(`db:schedules:${currentUser.id}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'schedules' },
-        () => void refreshData(),
+        queueRefresh,
       )
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'schedule_members' },
-        () => void refreshData(),
+        { event: '*', schema: 'public', table: 'schedule_members', filter: `user_id=eq.${currentUser.id}` },
+        queueRefresh,
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'schedule_songs' },
-        () => void refreshData(),
+        queueRefresh,
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'messages' },
-        () => void refreshData(),
+        queueRefresh,
       )
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'notifications' },
-        () => void refreshData(),
+        { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${currentUser.id}` },
+        queueRefresh,
       )
       .subscribe();
 
     return () => {
+      if (refreshTimeout) {
+        clearTimeout(refreshTimeout);
+      }
       void supabase.removeChannel(schedulesChannel);
     };
   }, [currentUser, initialized, refreshData]);

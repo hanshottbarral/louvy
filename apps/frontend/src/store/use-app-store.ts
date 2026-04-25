@@ -56,40 +56,6 @@ async function fetchProfile(userId: string) {
   return data;
 }
 
-async function ensureBootstrapAdmin(profile: {
-  id: string;
-  name: string;
-  email: string | null;
-  role: 'ADMIN' | 'MUSICIAN';
-}) {
-  const { count, error } = await supabase
-    .from('profiles')
-    .select('id', { count: 'exact', head: true })
-    .eq('role', 'ADMIN');
-
-  if (error) {
-    throw error;
-  }
-
-  if ((count ?? 0) === 0 && profile.role !== 'ADMIN') {
-    const { error: updateError } = await supabase
-      .from('profiles')
-      .update({ role: 'ADMIN' })
-      .eq('id', profile.id);
-
-    if (updateError) {
-      throw updateError;
-    }
-
-    return {
-      ...profile,
-      role: 'ADMIN' as const,
-    };
-  }
-
-  return profile;
-}
-
 async function fetchDataForUser(currentUser: SessionUser) {
   let scheduleIds: string[] = [];
 
@@ -247,7 +213,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       return;
     }
 
-    const profile = await ensureBootstrapAdmin(await fetchProfile(session.user.id));
+    const profile = await fetchProfile(session.user.id);
     const currentUser: SessionUser = {
       id: profile.id,
       name: profile.name,

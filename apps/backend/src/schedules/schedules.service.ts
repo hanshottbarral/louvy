@@ -58,7 +58,9 @@ export class SchedulesService {
     });
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, userId: string, role: AppRole) {
+    await this.assertScheduleAccess(id, userId, role);
+
     const schedule = await this.prisma.schedule.findUnique({
       where: { id },
       include: this.scheduleInclude,
@@ -71,7 +73,7 @@ export class SchedulesService {
   }
 
   async update(id: string, dto: UpdateScheduleDto) {
-    await this.findOne(id);
+    await this.assertScheduleExists(id);
 
     const schedule = await this.prisma.schedule.update({
       where: { id },
@@ -127,10 +129,40 @@ export class SchedulesService {
   }
 
   async remove(id: string) {
-    await this.findOne(id);
+    await this.assertScheduleExists(id);
     await this.prisma.schedule.delete({ where: { id } });
     this.realtimeGateway.broadcastScheduleUpdate(id, 'deleted', { id });
     return { success: true };
+  }
+
+  private async assertScheduleExists(id: string) {
+    const schedule = await this.prisma.schedule.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+
+    if (!schedule) {
+      throw new NotFoundException('Schedule not found');
+    }
+  }
+
+  private async assertScheduleAccess(id: string, userId: string, role: AppRole) {
+    if (role === AppRole.ADMIN) {
+      await this.assertScheduleExists(id);
+      return;
+    }
+
+    const membership = await this.prisma.scheduleMember.findFirst({
+      where: {
+        scheduleId: id,
+        userId,
+      },
+      select: { id: true },
+    });
+
+    if (!membership) {
+      throw new ForbiddenException('You do not have access to this schedule');
+    }
   }
 
   private readonly scheduleInclude = {
@@ -150,4 +182,3 @@ export class SchedulesService {
     },
   };
 }
-
