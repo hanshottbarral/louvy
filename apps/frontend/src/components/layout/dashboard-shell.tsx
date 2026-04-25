@@ -18,6 +18,7 @@ export function DashboardShell() {
   const currentUser = useAppStore((state) => state.currentUser);
   const initialized = useAppStore((state) => state.initialized);
   const isLoading = useAppStore((state) => state.isLoading);
+  const isHydratingApp = useAppStore((state) => state.isHydratingApp);
   const selectedScheduleId = useAppStore((state) => state.selectedScheduleId);
   const schedule = useAppStore((state) =>
     state.schedules.find((item) => item.id === selectedScheduleId),
@@ -30,6 +31,10 @@ export function DashboardShell() {
 
   if (!currentUser) {
     return <AuthPanel />;
+  }
+
+  if (isHydratingApp && !schedule && activeSection === 'schedules') {
+    return <main className="p-6">Entrou. Agora estou carregando suas escalas...</main>;
   }
 
   if (!schedule && activeSection === 'schedules') {

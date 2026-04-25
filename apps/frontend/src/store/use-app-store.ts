@@ -21,6 +21,7 @@ interface AppState {
   currentUser: SessionUser | null;
   initialized: boolean;
   isLoading: boolean;
+  isHydratingApp: boolean;
   schedules: ScheduleView[];
   selectedScheduleId: string;
   notifications: NotificationView[];
@@ -198,6 +199,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   currentUser: null,
   initialized: false,
   isLoading: true,
+  isHydratingApp: false,
   schedules: [],
   selectedScheduleId: '',
   notifications: [],
@@ -222,6 +224,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         currentUser: null,
         initialized: true,
         isLoading: false,
+        isHydratingApp: false,
         schedules: [],
         repertoire: [],
         notifications: [],
@@ -239,6 +242,14 @@ export const useAppStore = create<AppState>((set, get) => ({
       role: profile.role as AppRole,
     };
 
+    set({
+      currentUser,
+      initialized: true,
+      isLoading: false,
+      isHydratingApp: true,
+      authMessage: undefined,
+    });
+
     const payload = await fetchDataForUser(currentUser);
     if (requestId !== bootstrapRequestId) {
       return;
@@ -246,14 +257,11 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     const firstScheduleId = payload.schedules[0]?.id ?? '';
     set({
-      currentUser,
-      initialized: true,
-      isLoading: false,
       schedules: payload.schedules,
       selectedScheduleId: firstScheduleId,
       repertoire: payload.repertoire,
       notifications: payload.notifications,
-      authMessage: undefined,
+      isHydratingApp: false,
       loadedMessageScheduleIds: [],
       loadingScheduleMessages: false,
     });
@@ -280,6 +288,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       selectedScheduleId,
       repertoire: payload.repertoire,
       notifications: payload.notifications,
+      isHydratingApp: false,
     });
 
     if (selectedScheduleId) {
@@ -331,7 +340,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       set({ isLoading: false, authMessage: error.message });
+      return;
     }
+
+    await get().bootstrap();
   },
   signUp: async (name, email, password) => {
     set({ isLoading: true, authMessage: undefined });
@@ -348,6 +360,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
 
     if (data.session?.user) {
+      await get().bootstrap();
       return;
     }
 
