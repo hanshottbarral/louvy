@@ -5,7 +5,7 @@ coverage
 .turbo
 .env
 .env.local
+apps/frontend/.env.local
 apps/backend/prisma/dev.db
 apps/backend/prisma/dev.db-journal
 apps/backend/uploads
-
