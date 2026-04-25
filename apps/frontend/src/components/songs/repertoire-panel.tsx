@@ -1,0 +1,139 @@
+'use client';
+
+import { Search, PlusCircle, Music4 } from 'lucide-react';
+import { useDeferredValue, useMemo, useState } from 'react';
+import { formatScheduleDate } from '@/lib/utils';
+import { useAppStore } from '@/store/use-app-store';
+
+export function RepertoirePanel() {
+  const repertoire = useAppStore((state) => state.repertoire);
+  const schedules = useAppStore((state) => state.schedules);
+  const selectedScheduleId = useAppStore((state) => state.selectedScheduleId);
+  const addSongToSchedule = useAppStore((state) => state.addSongToSchedule);
+  const [query, setQuery] = useState('');
+  const deferredQuery = useDeferredValue(query);
+
+  const filteredSongs = useMemo(() => {
+    const normalizedQuery = deferredQuery.trim().toLowerCase();
+    if (!normalizedQuery) {
+      return repertoire;
+    }
+
+    return repertoire.filter((song) =>
+      [song.name, song.category, song.key, song.tags.join(' ')]
+        .join(' ')
+        .toLowerCase()
+        .includes(normalizedQuery),
+    );
+  }, [deferredQuery, repertoire]);
+
+  const selectedSchedule = schedules.find((schedule) => schedule.id === selectedScheduleId);
+
+  return (
+    <section className="space-y-4">
+      <div className="glass rounded-3xl p-5">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Ministerio</p>
+            <h2 className="mt-2 text-3xl leading-none">Repertorio completo</h2>
+            <p className="mt-2 max-w-2xl text-sm text-[var(--muted)]">
+              Consulte todas as musicas da equipe, filtre por categoria e injete uma faixa direto na escala atual.
+            </p>
+          </div>
+          <div className="glass flex min-w-[280px] items-center gap-2 rounded-full px-4 py-3">
+            <Search size={16} className="text-[var(--muted)]" />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Buscar por nome, tom, categoria ou tag"
+              className="min-w-0 flex-1 bg-transparent outline-none"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <section className="glass rounded-3xl p-4">
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Biblioteca</p>
+              <h3 className="text-xl">{filteredSongs.length} musicas cadastradas</h3>
+            </div>
+            <span className="rounded-full bg-[var(--surface-strong)] px-3 py-1 text-sm">
+              Repertorio vivo
+            </span>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2">
+            {filteredSongs.map((song) => (
+              <article
+                key={song.id}
+                className="rounded-2xl border border-[var(--line)] bg-[var(--surface-strong)] p-4"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-semibold">{song.name}</p>
+                    <p className="mt-1 text-sm text-[var(--muted)]">
+                      {song.category} • Tom {song.key}
+                      {song.bpm ? ` • ${song.bpm} BPM` : ''}
+                    </p>
+                  </div>
+                  <Music4 size={18} className="text-[var(--muted)]" />
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {song.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="rounded-full bg-[rgba(31,122,92,0.1)] px-3 py-1 text-xs text-[var(--accent-strong)]"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+
+                <div className="mt-4 flex items-center justify-between gap-3 text-sm text-[var(--muted)]">
+                  <span>Ultima vez: {song.lastPlayed ? formatScheduleDate(song.lastPlayed) : 'nunca'}</span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      selectedSchedule ? void addSongToSchedule(selectedSchedule.id, song.id) : undefined
+                    }
+                    disabled={!selectedSchedule}
+                    className="flex items-center gap-2 rounded-full bg-[var(--foreground)] px-3 py-2 text-white disabled:opacity-40"
+                  >
+                    <PlusCircle size={16} /> Adicionar
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <aside className="glass rounded-3xl p-4">
+          <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Escala alvo</p>
+          <h3 className="mt-2 text-xl">{selectedSchedule?.title ?? 'Nenhuma escala'}</h3>
+          <p className="mt-2 text-sm text-[var(--muted)]">
+            {selectedSchedule
+              ? `Selecionada para receber musicas em ${formatScheduleDate(selectedSchedule.date)}.`
+              : 'Volte para a aba de escalas e selecione uma escala para receber musicas deste repertorio.'}
+          </p>
+
+          {selectedSchedule ? (
+            <div className="mt-4 space-y-3">
+              {selectedSchedule.songs.map((song) => (
+                <div
+                  key={song.id}
+                  className="rounded-2xl border border-[var(--line)] bg-[var(--surface-strong)] p-3"
+                >
+                  <p className="font-semibold">{song.name}</p>
+                  <p className="text-sm text-[var(--muted)]">Tom {song.key}</p>
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </aside>
+      </div>
+    </section>
+  );
+}

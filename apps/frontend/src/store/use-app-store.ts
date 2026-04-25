@@ -1,0 +1,439 @@
+'use client';
+
+import { AppRole, MessageType, ScheduleEventType } from '@louvy/shared';
+import { create } from 'zustand';
+import { supabase } from '@/lib/supabase';
+import { mapNotifications, mapRepertoire, mapSchedules } from '@/lib/supabase-mappers';
+import {
+  AppSection,
+  AuthMode,
+  MinistrySongView,
+  NotificationView,
+  ScheduleEditorInput,
+  ScheduleView,
+  SessionUser,
+} from '@/types';
+
+interface AppState {
+  activeSection: AppSection;
+  authMode: AuthMode;
+  authMessage?: string;
+  currentUser: SessionUser | null;
+  initialized: boolean;
+  isLoading: boolean;
+  schedules: ScheduleView[];
+  selectedScheduleId: string;
+  notifications: NotificationView[];
+  repertoire: MinistrySongView[];
+  typingUser?: string;
+  bootstrap: () => Promise<void>;
+  refreshData: () => Promise<void>;
+  setAuthMode: (mode: AuthMode) => void;
+  setActiveSection: (section: AppSection) => void;
+  selectSchedule: (scheduleId: string) => void;
+  markTyping: (name?: string) => void;
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (name: string, email: string, password: string) => Promise<void>;
+  signOut: () => Promise<void>;
+  saveSchedule: (payload: ScheduleEditorInput) => Promise<string | undefined>;
+  reorderSongs: (scheduleId: string, songIds: string[]) => Promise<void>;
+  addSongToSchedule: (scheduleId: string, songId: string) => Promise<void>;
+  sendTextMessage: (scheduleId: string, content: string) => Promise<void>;
+  sendAudioMessage: (scheduleId: string, audioUrl: string) => Promise<void>;
+}
+
+async function fetchProfile(userId: string) {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, name, email, role')
+    .eq('id', userId)
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+async function ensureBootstrapAdmin(profile: {
+  id: string;
+  name: string;
+  email: string | null;
+  role: 'ADMIN' | 'MUSICIAN';
+}) {
+  const { count, error } = await supabase
+    .from('profiles')
+    .select('id', { count: 'exact', head: true })
+    .eq('role', 'ADMIN');
+
+  if (error) {
+    throw error;
+  }
+
+  if ((count ?? 0) === 0 && profile.role !== 'ADMIN') {
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({ role: 'ADMIN' })
+      .eq('id', profile.id);
+
+    if (updateError) {
+      throw updateError;
+    }
+
+    return {
+      ...profile,
+      role: 'ADMIN' as const,
+    };
+  }
+
+  return profile;
+}
+
+async function fetchDataForUser(currentUser: SessionUser) {
+  let scheduleIds: string[] = [];
+
+  if (currentUser.role === AppRole.ADMIN) {
+    const { data, error } = await supabase
+      .from('schedules')
+      .select('id')
+      .order('event_date', { ascending: true });
+    if (error) {
+      throw error;
+    }
+    scheduleIds = (data ?? []).map((item) => item.id);
+  } else {
+    const { data, error } = await supabase
+      .from('schedule_members')
+      .select('schedule_id')
+      .eq('user_id', currentUser.id);
+    if (error) {
+      throw error;
+    }
+    scheduleIds = Array.from(new Set((data ?? []).map((item) => item.schedule_id)));
+  }
+
+  const schedulesPromise =
+    scheduleIds.length > 0
+      ? supabase
+          .from('schedules')
+          .select('id, title, event_date, event_time, event_type, event_label, notes')
+          .in('id', scheduleIds)
+          .order('event_date', { ascending: true })
+      : Promise.resolve({ data: [], error: null });
+
+  const membersPromise =
+    scheduleIds.length > 0
+      ? supabase
+          .from('schedule_members')
+          .select('id, schedule_id, user_id, role, status')
+          .in('schedule_id', scheduleIds)
+      : Promise.resolve({ data: [], error: null });
+
+  const songsPromise =
+    scheduleIds.length > 0
+      ? supabase
+          .from('schedule_songs')
+          .select('id, schedule_id, name, musical_key, bpm, youtube_url, position')
+          .in('schedule_id', scheduleIds)
+          .order('position', { ascending: true })
+      : Promise.resolve({ data: [], error: null });
+
+  const messagesPromise =
+    scheduleIds.length > 0
+      ? supabase
+          .from('messages')
+          .select('id, schedule_id, user_id, content, type, audio_url, created_at')
+          .in('schedule_id', scheduleIds)
+          .order('created_at', { ascending: true })
+      : Promise.resolve({ data: [], error: null });
+
+  const repertoirePromise = supabase
+    .from('repertoire_songs')
+    .select('id, name, musical_key, bpm, youtube_url, category, tags, created_at')
+    .eq('is_active', true)
+    .order('name', { ascending: true });
+
+  const notificationsPromise = supabase
+    .from('notifications')
+    .select('id, title, body, read_at, created_at')
+    .eq('user_id', currentUser.id)
+    .order('created_at', { ascending: false })
+    .limit(30);
+
+  const [schedulesResult, membersResult, songsResult, messagesResult, repertoireResult, notificationsResult] =
+    await Promise.all([
+      schedulesPromise,
+      membersPromise,
+      songsPromise,
+      messagesPromise,
+      repertoirePromise,
+      notificationsPromise,
+    ]);
+
+  for (const result of [
+    schedulesResult,
+    membersResult,
+    songsResult,
+    messagesResult,
+    repertoireResult,
+    notificationsResult,
+  ]) {
+    if (result.error) {
+      throw result.error;
+    }
+  }
+
+  const profileIds = new Set<string>([currentUser.id]);
+  for (const member of membersResult.data ?? []) {
+    profileIds.add(member.user_id);
+  }
+  for (const message of messagesResult.data ?? []) {
+    profileIds.add(message.user_id);
+  }
+
+  const { data: profilesData, error: profilesError } = await supabase
+    .from('profiles')
+    .select('id, name, email, role')
+    .in('id', Array.from(profileIds));
+
+  if (profilesError) {
+    throw profilesError;
+  }
+
+  const schedules = mapSchedules({
+    schedules: schedulesResult.data ?? [],
+    members: membersResult.data ?? [],
+    songs: songsResult.data ?? [],
+    messages: messagesResult.data ?? [],
+    profiles: profilesData ?? [],
+  });
+
+  return {
+    schedules,
+    repertoire: mapRepertoire(repertoireResult.data ?? []),
+    notifications: mapNotifications(notificationsResult.data ?? []),
+  };
+}
+
+export const useAppStore = create<AppState>((set, get) => ({
+  activeSection: 'schedules',
+  authMode: 'login',
+  authMessage: undefined,
+  currentUser: null,
+  initialized: false,
+  isLoading: true,
+  schedules: [],
+  selectedScheduleId: '',
+  notifications: [],
+  repertoire: [],
+  typingUser: undefined,
+  bootstrap: async () => {
+    set({ isLoading: true });
+
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (!session?.user) {
+      set({
+        currentUser: null,
+        initialized: true,
+        isLoading: false,
+        schedules: [],
+        repertoire: [],
+        notifications: [],
+      });
+      return;
+    }
+
+    const profile = await ensureBootstrapAdmin(await fetchProfile(session.user.id));
+    const currentUser: SessionUser = {
+      id: profile.id,
+      name: profile.name,
+      email: profile.email ?? session.user.email ?? '',
+      role: profile.role as AppRole,
+    };
+
+    const payload = await fetchDataForUser(currentUser);
+    set({
+      currentUser,
+      initialized: true,
+      isLoading: false,
+      schedules: payload.schedules,
+      selectedScheduleId: payload.schedules[0]?.id ?? '',
+      repertoire: payload.repertoire,
+      notifications: payload.notifications,
+      authMessage: undefined,
+    });
+  },
+  refreshData: async () => {
+    const currentUser = get().currentUser;
+    if (!currentUser) {
+      return;
+    }
+
+    const payload = await fetchDataForUser(currentUser);
+    const previousSelected = get().selectedScheduleId;
+    set({
+      schedules: payload.schedules,
+      selectedScheduleId:
+        payload.schedules.find((schedule) => schedule.id === previousSelected)?.id ??
+        payload.schedules[0]?.id ??
+        '',
+      repertoire: payload.repertoire,
+      notifications: payload.notifications,
+    });
+  },
+  setAuthMode: (mode) => set({ authMode: mode, authMessage: undefined }),
+  setActiveSection: (section) => set({ activeSection: section }),
+  selectSchedule: (scheduleId) => set({ selectedScheduleId: scheduleId }),
+  markTyping: (name) => set({ typingUser: name }),
+  signIn: async (email, password) => {
+    set({ isLoading: true, authMessage: undefined });
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      set({ isLoading: false, authMessage: error.message });
+      return;
+    }
+
+    await get().bootstrap();
+  },
+  signUp: async (name, email, password) => {
+    set({ isLoading: true, authMessage: undefined });
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { name },
+      },
+    });
+    if (error) {
+      set({ isLoading: false, authMessage: error.message });
+      return;
+    }
+
+    if (data.session?.user) {
+      await get().bootstrap();
+      return;
+    }
+
+    set({
+      isLoading: false,
+      authMode: 'login',
+      authMessage: 'Conta criada. Se o projeto exigir confirmacao por email, confirme antes de entrar.',
+    });
+  },
+  signOut: async () => {
+    await supabase.auth.signOut();
+    set({
+      currentUser: null,
+      schedules: [],
+      selectedScheduleId: '',
+      repertoire: [],
+      notifications: [],
+      initialized: true,
+      isLoading: false,
+    });
+  },
+  saveSchedule: async (payload) => {
+    const currentUser = get().currentUser;
+    if (!currentUser) {
+      return undefined;
+    }
+
+    const body = {
+      title: payload.title,
+      event_date: payload.date,
+      event_time: `${payload.time}:00`,
+      event_type: payload.eventType,
+      event_label: payload.eventLabel,
+      notes: payload.notes ?? null,
+      created_by: currentUser.id,
+    };
+
+    if (payload.id) {
+      const { error } = await supabase.from('schedules').update(body).eq('id', payload.id);
+      if (error) {
+        set({ authMessage: error.message });
+        return undefined;
+      }
+      await get().refreshData();
+      return payload.id;
+    }
+
+    const { data, error } = await supabase.from('schedules').insert(body).select('id').single();
+    if (error) {
+      set({ authMessage: error.message });
+      return undefined;
+    }
+
+    await get().refreshData();
+    set({ selectedScheduleId: data.id });
+    return data.id;
+  },
+  reorderSongs: async (scheduleId, songIds) => {
+    const updates = songIds.map((songId, index) =>
+      supabase.from('schedule_songs').update({ position: index }).eq('id', songId),
+    );
+    await Promise.all(updates);
+    await get().refreshData();
+    set({ selectedScheduleId: scheduleId });
+  },
+  addSongToSchedule: async (scheduleId, songId) => {
+    const librarySong = get().repertoire.find((song) => song.id === songId);
+    const schedule = get().schedules.find((item) => item.id === scheduleId);
+    if (!librarySong || !schedule) {
+      return;
+    }
+
+    const { error } = await supabase.from('schedule_songs').insert({
+      schedule_id: scheduleId,
+      repertoire_song_id: songId,
+      name: librarySong.name,
+      musical_key: librarySong.key,
+      bpm: librarySong.bpm,
+      youtube_url: librarySong.youtubeUrl,
+      position: schedule.songs.length,
+    });
+
+    if (!error) {
+      await get().refreshData();
+      set({ activeSection: 'schedules', selectedScheduleId: scheduleId });
+    }
+  },
+  sendTextMessage: async (scheduleId, content) => {
+    const currentUser = get().currentUser;
+    if (!currentUser || !content.trim()) {
+      return;
+    }
+
+    const { error } = await supabase.from('messages').insert({
+      schedule_id: scheduleId,
+      user_id: currentUser.id,
+      content: content.trim(),
+      type: MessageType.TEXT,
+    });
+
+    if (!error) {
+      await get().refreshData();
+    }
+  },
+  sendAudioMessage: async (scheduleId, audioUrl) => {
+    const currentUser = get().currentUser;
+    if (!currentUser || !audioUrl) {
+      return;
+    }
+
+    const { error } = await supabase.from('messages').insert({
+      schedule_id: scheduleId,
+      user_id: currentUser.id,
+      audio_url: audioUrl,
+      type: MessageType.AUDIO,
+    });
+
+    if (!error) {
+      await get().refreshData();
+    }
+  },
+}));
