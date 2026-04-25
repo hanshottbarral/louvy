@@ -66,7 +66,6 @@ export function mapSchedules(args: {
   schedules: ScheduleRow[];
   members: ScheduleMemberRow[];
   songs: ScheduleSongRow[];
-  messages: MessageRow[];
   profiles: ProfileRow[];
 }): ScheduleView[] {
   const profileMap = new Map(args.profiles.map((profile) => [profile.id, profile]));
@@ -94,21 +93,6 @@ export function mapSchedules(args: {
         position: song.position,
       }));
 
-    const scheduleMessages = args.messages
-      .filter((message) => message.schedule_id === schedule.id)
-      .sort((a, b) => a.created_at.localeCompare(b.created_at))
-      .map((message) => ({
-        id: message.id,
-        content: message.content,
-        type: message.type,
-        audioUrl: message.audio_url,
-        createdAt: message.created_at,
-        user: {
-          id: message.user_id,
-          name: profileMap.get(message.user_id)?.name ?? 'Integrante',
-        },
-      }));
-
     return {
       id: schedule.id,
       title: schedule.title,
@@ -121,9 +105,27 @@ export function mapSchedules(args: {
       memberCount: members.length,
       members,
       songs: scheduleSongs,
-      messages: scheduleMessages,
+      messages: [],
     };
   });
+}
+
+export function mapMessages(rows: MessageRow[], profiles: ProfileRow[]) {
+  const profileMap = new Map(profiles.map((profile) => [profile.id, profile]));
+
+  return rows
+    .sort((a, b) => a.created_at.localeCompare(b.created_at))
+    .map((message) => ({
+      id: message.id,
+      content: message.content,
+      type: message.type,
+      audioUrl: message.audio_url,
+      createdAt: message.created_at,
+      user: {
+        id: message.user_id,
+        name: profileMap.get(message.user_id)?.name ?? 'Integrante',
+      },
+    }));
 }
 
 export function mapRepertoire(rows: RepertoireSongRow[]): MinistrySongView[] {

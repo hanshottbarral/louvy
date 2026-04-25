@@ -3,7 +3,7 @@
 import { AppRole, MessageType, ScheduleEventType } from '@louvy/shared';
 import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
-import { mapNotifications, mapRepertoire, mapSchedules } from '@/lib/supabase-mappers';
+import { mapMessages, mapNotifications, mapRepertoire, mapSchedules } from '@/lib/supabase-mappers';
 import {
   AppSection,
   AuthMode,
@@ -26,8 +26,11 @@ interface AppState {
   notifications: NotificationView[];
   repertoire: MinistrySongView[];
   typingUser?: string;
+  loadingScheduleMessages: boolean;
+  loadedMessageScheduleIds: string[];
   bootstrap: () => Promise<void>;
   refreshData: () => Promise<void>;
+  loadScheduleMessages: (scheduleId: string, options?: { force?: boolean }) => Promise<void>;
   setAuthMode: (mode: AuthMode) => void;
   setActiveSection: (section: AppSection) => void;
   selectSchedule: (scheduleId: string) => void;
@@ -105,15 +108,6 @@ async function fetchDataForUser(currentUser: SessionUser) {
           .order('position', { ascending: true })
       : Promise.resolve({ data: [], error: null });
 
-  const messagesPromise =
-    scheduleIds.length > 0
-      ? supabase
-          .from('messages')
-          .select('id, schedule_id, user_id, content, type, audio_url, created_at')
-          .in('schedule_id', scheduleIds)
-          .order('created_at', { ascending: true })
-      : Promise.resolve({ data: [], error: null });
-
   const repertoirePromise = supabase
     .from('repertoire_songs')
     .select('id, name, musical_key, bpm, youtube_url, category, tags, created_at')
@@ -127,24 +121,16 @@ async function fetchDataForUser(currentUser: SessionUser) {
     .order('created_at', { ascending: false })
     .limit(30);
 
-  const [schedulesResult, membersResult, songsResult, messagesResult, repertoireResult, notificationsResult] =
+  const [schedulesResult, membersResult, songsResult, repertoireResult, notificationsResult] =
     await Promise.all([
       schedulesPromise,
       membersPromise,
       songsPromise,
-      messagesPromise,
       repertoirePromise,
       notificationsPromise,
     ]);
 
-  for (const result of [
-    schedulesResult,
-    membersResult,
-    songsResult,
-    messagesResult,
-    repertoireResult,
-    notificationsResult,
-  ]) {
+  for (const result of [schedulesResult, membersResult, songsResult, repertoireResult, notificationsResult]) {
     if (result.error) {
       throw result.error;
     }
@@ -153,9 +139,6 @@ async function fetchDataForUser(currentUser: SessionUser) {
   const profileIds = new Set<string>([currentUser.id]);
   for (const member of membersResult.data ?? []) {
     profileIds.add(member.user_id);
-  }
-  for (const message of messagesResult.data ?? []) {
-    profileIds.add(message.user_id);
   }
 
   const { data: profilesData, error: profilesError } = await supabase
@@ -171,7 +154,6 @@ async function fetchDataForUser(currentUser: SessionUser) {
     schedules: schedulesResult.data ?? [],
     members: membersResult.data ?? [],
     songs: songsResult.data ?? [],
-    messages: messagesResult.data ?? [],
     profiles: profilesData ?? [],
   });
 
@@ -181,6 +163,33 @@ async function fetchDataForUser(currentUser: SessionUser) {
     notifications: mapNotifications(notificationsResult.data ?? []),
   };
 }
+
+async function fetchScheduleMessages(scheduleId: string) {
+  const { data: messagesData, error: messagesError } = await supabase
+    .from('messages')
+    .select('id, schedule_id, user_id, content, type, audio_url, created_at')
+    .eq('schedule_id', scheduleId)
+    .order('created_at', { ascending: true })
+    .limit(150);
+
+  if (messagesError) {
+    throw messagesError;
+  }
+
+  const profileIds = Array.from(new Set((messagesData ?? []).map((message) => message.user_id)));
+  const { data: profilesData, error: profilesError } =
+    profileIds.length > 0
+      ? await supabase.from('profiles').select('id, name, email, role').in('id', profileIds)
+      : { data: [], error: null };
+
+  if (profilesError) {
+    throw profilesError;
+  }
+
+  return mapMessages(messagesData ?? [], profilesData ?? []);
+}
+
+let bootstrapRequestId = 0;
 
 export const useAppStore = create<AppState>((set, get) => ({
   activeSection: 'schedules',
@@ -194,7 +203,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   notifications: [],
   repertoire: [],
   typingUser: undefined,
+  loadingScheduleMessages: false,
+  loadedMessageScheduleIds: [],
   bootstrap: async () => {
+    const requestId = ++bootstrapRequestId;
     set({ isLoading: true });
 
     const {
@@ -202,6 +214,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     } = await supabase.auth.getSession();
 
     if (!session?.user) {
+      if (requestId !== bootstrapRequestId) {
+        return;
+      }
+
       set({
         currentUser: null,
         initialized: true,
@@ -209,6 +225,8 @@ export const useAppStore = create<AppState>((set, get) => ({
         schedules: [],
         repertoire: [],
         notifications: [],
+        loadedMessageScheduleIds: [],
+        loadingScheduleMessages: false,
       });
       return;
     }
@@ -222,16 +240,27 @@ export const useAppStore = create<AppState>((set, get) => ({
     };
 
     const payload = await fetchDataForUser(currentUser);
+    if (requestId !== bootstrapRequestId) {
+      return;
+    }
+
+    const firstScheduleId = payload.schedules[0]?.id ?? '';
     set({
       currentUser,
       initialized: true,
       isLoading: false,
       schedules: payload.schedules,
-      selectedScheduleId: payload.schedules[0]?.id ?? '',
+      selectedScheduleId: firstScheduleId,
       repertoire: payload.repertoire,
       notifications: payload.notifications,
       authMessage: undefined,
+      loadedMessageScheduleIds: [],
+      loadingScheduleMessages: false,
     });
+
+    if (firstScheduleId) {
+      void get().loadScheduleMessages(firstScheduleId);
+    }
   },
   refreshData: async () => {
     const currentUser = get().currentUser;
@@ -241,29 +270,68 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     const payload = await fetchDataForUser(currentUser);
     const previousSelected = get().selectedScheduleId;
+    const selectedScheduleId =
+      payload.schedules.find((schedule) => schedule.id === previousSelected)?.id ??
+      payload.schedules[0]?.id ??
+      '';
+
     set({
       schedules: payload.schedules,
-      selectedScheduleId:
-        payload.schedules.find((schedule) => schedule.id === previousSelected)?.id ??
-        payload.schedules[0]?.id ??
-        '',
+      selectedScheduleId,
       repertoire: payload.repertoire,
       notifications: payload.notifications,
     });
+
+    if (selectedScheduleId) {
+      void get().loadScheduleMessages(selectedScheduleId, { force: true });
+    }
+  },
+  loadScheduleMessages: async (scheduleId, options) => {
+    const { loadedMessageScheduleIds, loadingScheduleMessages, schedules } = get();
+    if (!scheduleId) {
+      return;
+    }
+
+    if (!options?.force && (loadingScheduleMessages || loadedMessageScheduleIds.includes(scheduleId))) {
+      return;
+    }
+
+    const targetSchedule = schedules.find((schedule) => schedule.id === scheduleId);
+    if (!targetSchedule) {
+      return;
+    }
+
+    set({ loadingScheduleMessages: true });
+
+    try {
+      const messages = await fetchScheduleMessages(scheduleId);
+      set((state) => ({
+        schedules: state.schedules.map((schedule) =>
+          schedule.id === scheduleId ? { ...schedule, messages } : schedule,
+        ),
+        loadedMessageScheduleIds: Array.from(new Set([...state.loadedMessageScheduleIds, scheduleId])),
+        loadingScheduleMessages: false,
+      }));
+    } catch (error) {
+      set({
+        loadingScheduleMessages: false,
+        authMessage: error instanceof Error ? error.message : 'Nao consegui carregar o chat da escala.',
+      });
+    }
   },
   setAuthMode: (mode) => set({ authMode: mode, authMessage: undefined }),
   setActiveSection: (section) => set({ activeSection: section }),
-  selectSchedule: (scheduleId) => set({ selectedScheduleId: scheduleId }),
+  selectSchedule: (scheduleId) => {
+    set({ selectedScheduleId: scheduleId });
+    void get().loadScheduleMessages(scheduleId);
+  },
   markTyping: (name) => set({ typingUser: name }),
   signIn: async (email, password) => {
     set({ isLoading: true, authMessage: undefined });
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       set({ isLoading: false, authMessage: error.message });
-      return;
     }
-
-    await get().bootstrap();
   },
   signUp: async (name, email, password) => {
     set({ isLoading: true, authMessage: undefined });
@@ -280,7 +348,6 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
 
     if (data.session?.user) {
-      await get().bootstrap();
       return;
     }
 
@@ -382,7 +449,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
 
     if (!error) {
-      await get().refreshData();
+      await get().loadScheduleMessages(scheduleId, { force: true });
     }
   },
   sendAudioMessage: async (scheduleId, audioUrl) => {
@@ -399,7 +466,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
 
     if (!error) {
-      await get().refreshData();
+      await get().loadScheduleMessages(scheduleId, { force: true });
     }
   },
 }));

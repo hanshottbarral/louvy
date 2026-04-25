@@ -13,6 +13,7 @@ export function ChatPanel({ schedule }: { schedule: ScheduleView }) {
   const sendTextMessage = useAppStore((state) => state.sendTextMessage);
   const sendAudioMessage = useAppStore((state) => state.sendAudioMessage);
   const typingUser = useAppStore((state) => state.typingUser);
+  const loadingScheduleMessages = useAppStore((state) => state.loadingScheduleMessages);
   const [message, setMessage] = useState('');
 
   const sendText = async (event: FormEvent) => {
@@ -55,6 +56,9 @@ export function ChatPanel({ schedule }: { schedule: ScheduleView }) {
       </div>
 
       <div className="flex-1 space-y-3 overflow-y-auto rounded-3xl border border-[var(--line)] bg-[var(--surface-strong)] p-3">
+        {loadingScheduleMessages && schedule.messages.length === 0 ? (
+          <p className="text-sm text-[var(--muted)]">Carregando historico do chat...</p>
+        ) : null}
         {schedule.messages.map((chatMessage) => {
           const mine = chatMessage.user.id === currentUser?.id;
           return (
