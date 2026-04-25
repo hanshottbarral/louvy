@@ -191,6 +191,7 @@ async function fetchScheduleMessages(scheduleId: string) {
 }
 
 let bootstrapRequestId = 0;
+let bootstrapInFlight: Promise<void> | null = null;
 
 export const useAppStore = create<AppState>((set, get) => ({
   activeSection: 'schedules',
@@ -208,67 +209,81 @@ export const useAppStore = create<AppState>((set, get) => ({
   loadingScheduleMessages: false,
   loadedMessageScheduleIds: [],
   bootstrap: async () => {
-    const requestId = ++bootstrapRequestId;
-    set({ isLoading: true });
+    if (bootstrapInFlight) {
+      return bootstrapInFlight;
+    }
 
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
+    const run = async () => {
+      const requestId = ++bootstrapRequestId;
+      set((state) => ({
+        isLoading: state.currentUser ? state.isLoading : true,
+      }));
 
-    if (!session?.user) {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.user) {
+        if (requestId !== bootstrapRequestId) {
+          return;
+        }
+
+        set({
+          currentUser: null,
+          initialized: true,
+          isLoading: false,
+          isHydratingApp: false,
+          schedules: [],
+          repertoire: [],
+          notifications: [],
+          loadedMessageScheduleIds: [],
+          loadingScheduleMessages: false,
+        });
+        return;
+      }
+
+      const profile = await fetchProfile(session.user.id);
+      const currentUser: SessionUser = {
+        id: profile.id,
+        name: profile.name,
+        email: profile.email ?? session.user.email ?? '',
+        role: profile.role as AppRole,
+      };
+
+      set({
+        currentUser,
+        initialized: true,
+        isLoading: false,
+        isHydratingApp: true,
+        authMessage: undefined,
+      });
+
+      const payload = await fetchDataForUser(currentUser);
       if (requestId !== bootstrapRequestId) {
         return;
       }
 
+      const firstScheduleId = payload.schedules[0]?.id ?? '';
       set({
-        currentUser: null,
-        initialized: true,
-        isLoading: false,
+        schedules: payload.schedules,
+        selectedScheduleId: firstScheduleId,
+        repertoire: payload.repertoire,
+        notifications: payload.notifications,
         isHydratingApp: false,
-        schedules: [],
-        repertoire: [],
-        notifications: [],
         loadedMessageScheduleIds: [],
         loadingScheduleMessages: false,
       });
-      return;
-    }
 
-    const profile = await fetchProfile(session.user.id);
-    const currentUser: SessionUser = {
-      id: profile.id,
-      name: profile.name,
-      email: profile.email ?? session.user.email ?? '',
-      role: profile.role as AppRole,
+      if (firstScheduleId) {
+        void get().loadScheduleMessages(firstScheduleId);
+      }
     };
 
-    set({
-      currentUser,
-      initialized: true,
-      isLoading: false,
-      isHydratingApp: true,
-      authMessage: undefined,
+    bootstrapInFlight = run().finally(() => {
+      bootstrapInFlight = null;
     });
 
-    const payload = await fetchDataForUser(currentUser);
-    if (requestId !== bootstrapRequestId) {
-      return;
-    }
-
-    const firstScheduleId = payload.schedules[0]?.id ?? '';
-    set({
-      schedules: payload.schedules,
-      selectedScheduleId: firstScheduleId,
-      repertoire: payload.repertoire,
-      notifications: payload.notifications,
-      isHydratingApp: false,
-      loadedMessageScheduleIds: [],
-      loadingScheduleMessages: false,
-    });
-
-    if (firstScheduleId) {
-      void get().loadScheduleMessages(firstScheduleId);
-    }
+    return bootstrapInFlight;
   },
   refreshData: async () => {
     const currentUser = get().currentUser;

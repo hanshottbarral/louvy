@@ -33,14 +33,6 @@ export function DashboardShell() {
     return <AuthPanel />;
   }
 
-  if (isHydratingApp && !schedule && activeSection === 'schedules') {
-    return <main className="p-6">Entrou. Agora estou carregando suas escalas...</main>;
-  }
-
-  if (!schedule && activeSection === 'schedules') {
-    return <main className="p-6">Nenhuma escala selecionada.</main>;
-  }
-
   return (
     <main className="min-h-screen p-3 md:p-5">
       <div className="mx-auto grid min-h-[calc(100vh-1.5rem)] max-w-[1600px] gap-3 lg:grid-cols-[300px_minmax(0,1fr)]">
@@ -50,6 +42,18 @@ export function DashboardShell() {
             <div className="p-3">
               <RepertoirePanel />
             </div>
+          ) : isHydratingApp && !schedule ? (
+            <div className="p-6">
+              <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Escalas</p>
+              <h2 className="mt-2 text-2xl">Entrou. Agora estou carregando suas escalas...</h2>
+              <div className="mt-6 grid gap-3 xl:grid-cols-[360px_minmax(0,1fr)_390px]">
+                <div className="glass min-h-[220px] rounded-3xl p-4 opacity-60" />
+                <div className="glass min-h-[420px] rounded-3xl p-4 opacity-60" />
+                <div className="glass min-h-[420px] rounded-3xl p-4 opacity-60" />
+              </div>
+            </div>
+          ) : !schedule ? (
+            <main className="p-6">Nenhuma escala selecionada.</main>
           ) : schedule ? (
             <>
               <div className="border-b border-[var(--line)] px-5 py-4">
