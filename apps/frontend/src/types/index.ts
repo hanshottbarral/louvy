@@ -7,8 +7,30 @@ import {
   SongDto,
 } from '@louvy/shared';
 
-export type AppSection = 'schedules' | 'repertoire';
+export type AppSection = 'schedules' | 'repertoire' | 'members' | 'calendar';
 export type AuthMode = 'login' | 'register';
+
+export type MinistryAssignment =
+  | 'VOCAL'
+  | 'BATERIA'
+  | 'BAIXO'
+  | 'GUITARRA'
+  | 'TECLADO'
+  | 'VIOLAO'
+  | 'DIRETOR_MUSICAL'
+  | 'MINISTRO_RESPONSAVEL'
+  | 'VS';
+
+export type VocalRange = 'BARITONO' | 'TENOR' | 'CONTRALTO' | 'SOPRANO' | 'MEZZO';
+
+export type AvailabilityTimeSlot = 'ANY' | 'MORNING' | 'AFTERNOON' | 'NIGHT';
+
+export type AvailabilityRecurrence =
+  | 'NONE'
+  | 'WEEKLY'
+  | 'FIRST_SUNDAY_MONTHLY'
+  | 'SUNDAY_MORNING_WEEKLY'
+  | 'SUNDAY_NIGHT_WEEKLY';
 
 export interface ScheduleMemberView {
   id: string;
@@ -24,6 +46,44 @@ export interface NotificationView {
   body: string;
   readAt?: string | null;
   createdAt: string;
+}
+
+export interface MemberDirectoryProfile {
+  userId: string;
+  name: string;
+  email: string;
+  appRole: AppRole;
+  assignments: MinistryAssignment[];
+  vocalRanges: VocalRange[];
+  notes?: string;
+}
+
+export interface MemberDirectoryInput {
+  userId: string;
+  appRole: AppRole;
+  assignments: MinistryAssignment[];
+  vocalRanges: VocalRange[];
+  notes?: string;
+}
+
+export interface AvailabilityBlock {
+  id: string;
+  userId: string;
+  userName: string;
+  date: string;
+  reason: string;
+  timeSlot: AvailabilityTimeSlot;
+  recurrence: AvailabilityRecurrence;
+  createdAt: string;
+}
+
+export interface AvailabilityBlockInput {
+  id?: string;
+  userId?: string;
+  date: string;
+  reason: string;
+  timeSlot: AvailabilityTimeSlot;
+  recurrence: AvailabilityRecurrence;
 }
 
 export interface ScheduleView {

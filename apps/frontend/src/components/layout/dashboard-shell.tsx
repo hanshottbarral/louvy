@@ -3,7 +3,9 @@
 import { AppRole, ScheduleEventType } from '@louvy/shared';
 import { Bell, CalendarClock, Music2, UserRound } from 'lucide-react';
 import { AuthPanel } from '@/components/auth/auth-panel';
+import { CalendarPanel } from '@/components/calendar/calendar-panel';
 import { ChatPanel } from '@/components/chat/chat-panel';
+import { MemberDirectoryPanel } from '@/components/members/member-directory-panel';
 import { RepertoirePanel } from '@/components/songs/repertoire-panel';
 import { Sidebar } from '@/components/layout/sidebar';
 import { ScheduleEditorPanel } from '@/components/schedules/schedule-editor-panel';
@@ -56,6 +58,14 @@ export function DashboardShell() {
           {activeSection === 'repertoire' ? (
             <div className="p-3">
               <RepertoirePanel />
+            </div>
+          ) : activeSection === 'members' ? (
+            <div className="p-3">
+              <MemberDirectoryPanel />
+            </div>
+          ) : activeSection === 'calendar' ? (
+            <div className="p-3">
+              <CalendarPanel />
             </div>
           ) : isHydratingApp && !schedule ? (
             <div className="p-6">

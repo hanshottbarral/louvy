@@ -1,6 +1,15 @@
 'use client';
 
-import { BookAudio, Calendar, ChevronRight, LogOut, Plus, UserCircle2 } from 'lucide-react';
+import {
+  BookAudio,
+  Calendar,
+  CalendarDays,
+  ChevronRight,
+  LogOut,
+  Plus,
+  UserCircle2,
+  Users2,
+} from 'lucide-react';
 import { ScheduleEventType } from '@louvy/shared';
 import { formatScheduleDate, getWeekdayLabel } from '@/lib/utils';
 import { useAppStore } from '@/store/use-app-store';
@@ -45,13 +54,15 @@ export function Sidebar() {
           <p className="text-xs uppercase tracking-[0.18em] text-white/55">Louvy</p>
           <h1 className="mt-1 text-2xl">Ministerio</h1>
         </div>
-        <button
-          onClick={contextualCreate}
-          className="rounded-full border border-white/12 p-2 text-white/90"
-          title={activeSection === 'repertoire' ? 'Cadastrar musica' : 'Criar escala'}
-        >
-          <Plus size={18} />
-        </button>
+        {activeSection === 'schedules' || activeSection === 'repertoire' ? (
+          <button
+            onClick={contextualCreate}
+            className="rounded-full border border-white/12 p-2 text-white/90"
+            title={activeSection === 'repertoire' ? 'Cadastrar musica' : 'Criar escala'}
+          >
+            <Plus size={18} />
+          </button>
+        ) : null}
       </div>
 
       <div className="mb-4 grid grid-cols-2 gap-2">
@@ -72,6 +83,24 @@ export function Sidebar() {
           )}
         >
           <BookAudio size={16} /> Repertorio
+        </button>
+        <button
+          onClick={() => setActiveSection('members')}
+          className={cn(
+            'flex items-center justify-center gap-2 rounded-2xl px-3 py-3 text-sm',
+            activeSection === 'members' ? 'bg-white text-[var(--foreground)]' : 'bg-white/5',
+          )}
+        >
+          <Users2 size={16} /> Membros
+        </button>
+        <button
+          onClick={() => setActiveSection('calendar')}
+          className={cn(
+            'flex items-center justify-center gap-2 rounded-2xl px-3 py-3 text-sm',
+            activeSection === 'calendar' ? 'bg-white text-[var(--foreground)]' : 'bg-white/5',
+          )}
+        >
+          <CalendarDays size={16} /> Calendario
         </button>
       </div>
 

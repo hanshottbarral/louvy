@@ -2,11 +2,22 @@
 
 import { AppRole, MessageType, ScheduleEventType } from '@louvy/shared';
 import { create } from 'zustand';
+import {
+  loadAvailabilityBlocks,
+  loadMemberDirectory,
+  removeAvailabilityBlock,
+  saveAvailabilityBlock,
+  saveMemberDirectoryProfile,
+} from '@/lib/member-calendar';
 import { supabase } from '@/lib/supabase';
 import { mapMessages, mapNotifications, mapRepertoire, mapSchedules } from '@/lib/supabase-mappers';
 import {
   AppSection,
+  AvailabilityBlock,
+  AvailabilityBlockInput,
   AuthMode,
+  MemberDirectoryInput,
+  MemberDirectoryProfile,
   MinistrySongView,
   NotificationView,
   RepertoireSongInput,
@@ -27,6 +38,12 @@ interface AppState {
   selectedScheduleId: string;
   notifications: NotificationView[];
   repertoire: MinistrySongView[];
+  memberDirectory: MemberDirectoryProfile[];
+  availabilityBlocks: AvailabilityBlock[];
+  isLoadingMembers: boolean;
+  isLoadingCalendar: boolean;
+  membersLoaded: boolean;
+  calendarLoaded: boolean;
   isCreatingRepertoireSong: boolean;
   typingUser?: string;
   loadingScheduleMessages: boolean;
@@ -36,6 +53,11 @@ interface AppState {
   loadScheduleMessages: (scheduleId: string, options?: { force?: boolean }) => Promise<void>;
   setAuthMode: (mode: AuthMode) => void;
   setActiveSection: (section: AppSection) => void;
+  loadMemberDirectory: (options?: { force?: boolean }) => Promise<void>;
+  saveMemberDirectoryProfile: (payload: MemberDirectoryInput) => Promise<void>;
+  loadAvailabilityBlocks: (options?: { force?: boolean }) => Promise<void>;
+  saveAvailabilityBlock: (payload: AvailabilityBlockInput) => Promise<void>;
+  removeAvailabilityBlock: (blockId: string) => Promise<void>;
   openRepertoireComposer: () => void;
   closeRepertoireComposer: () => void;
   selectSchedule: (scheduleId: string) => void;
@@ -210,6 +232,12 @@ export const useAppStore = create<AppState>((set, get) => ({
   selectedScheduleId: '',
   notifications: [],
   repertoire: [],
+  memberDirectory: [],
+  availabilityBlocks: [],
+  isLoadingMembers: false,
+  isLoadingCalendar: false,
+  membersLoaded: false,
+  calendarLoaded: false,
   isCreatingRepertoireSong: false,
   typingUser: undefined,
   loadingScheduleMessages: false,
@@ -241,6 +269,12 @@ export const useAppStore = create<AppState>((set, get) => ({
           isHydratingApp: false,
           schedules: [],
           repertoire: [],
+          memberDirectory: [],
+          availabilityBlocks: [],
+          isLoadingMembers: false,
+          isLoadingCalendar: false,
+          membersLoaded: false,
+          calendarLoaded: false,
           isCreatingRepertoireSong: false,
           notifications: [],
           loadedMessageScheduleIds: [],
@@ -352,7 +386,140 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
   setAuthMode: (mode) => set({ authMode: mode, authMessage: undefined }),
-  setActiveSection: (section) => set({ activeSection: section }),
+  setActiveSection: (section) => {
+    set({ activeSection: section });
+
+    if (section === 'members') {
+      void get().loadMemberDirectory();
+      return;
+    }
+
+    if (section === 'calendar') {
+      void get().loadAvailabilityBlocks();
+    }
+  },
+  loadMemberDirectory: async (options) => {
+    const currentUser = get().currentUser;
+    if (!currentUser) {
+      return;
+    }
+
+    if (get().isLoadingMembers || (!options?.force && get().membersLoaded)) {
+      return;
+    }
+
+    set({ isLoadingMembers: true, authMessage: undefined });
+
+    try {
+      const memberDirectory = await loadMemberDirectory();
+      set({
+        memberDirectory,
+        isLoadingMembers: false,
+        membersLoaded: true,
+      });
+    } catch (error) {
+      set({
+        isLoadingMembers: false,
+        authMessage:
+          error instanceof Error ? error.message : 'Nao consegui carregar a aba de membros agora.',
+      });
+    }
+  },
+  saveMemberDirectoryProfile: async (payload) => {
+    const currentUser = get().currentUser;
+    if (!currentUser) {
+      return;
+    }
+
+    set({ isLoadingMembers: true, authMessage: undefined });
+
+    try {
+      const result = await saveMemberDirectoryProfile(currentUser, payload);
+      set({
+        memberDirectory: result.directory,
+        currentUser: result.currentUser,
+        isLoadingMembers: false,
+        membersLoaded: true,
+        authMessage: result.remoteErrors.length
+          ? 'Cadastro salvo. Se quiser refletir isso para todos os dispositivos, aplique o patch SQL novo no Supabase.'
+          : 'Membro atualizado com sucesso.',
+      });
+    } catch (error) {
+      set({
+        isLoadingMembers: false,
+        authMessage: error instanceof Error ? error.message : 'Nao consegui salvar este membro agora.',
+      });
+    }
+  },
+  loadAvailabilityBlocks: async (options) => {
+    const currentUser = get().currentUser;
+    if (!currentUser) {
+      return;
+    }
+
+    if (get().isLoadingCalendar || (!options?.force && get().calendarLoaded)) {
+      return;
+    }
+
+    set({ isLoadingCalendar: true, authMessage: undefined });
+
+    try {
+      const availabilityBlocks = await loadAvailabilityBlocks();
+      set({
+        availabilityBlocks,
+        isLoadingCalendar: false,
+        calendarLoaded: true,
+      });
+    } catch (error) {
+      set({
+        isLoadingCalendar: false,
+        authMessage:
+          error instanceof Error ? error.message : 'Nao consegui carregar o calendario agora.',
+      });
+    }
+  },
+  saveAvailabilityBlock: async (payload) => {
+    const currentUser = get().currentUser;
+    if (!currentUser) {
+      return;
+    }
+
+    set({ isLoadingCalendar: true, authMessage: undefined });
+
+    try {
+      const availabilityBlocks = await saveAvailabilityBlock(currentUser, payload);
+      set({
+        availabilityBlocks,
+        isLoadingCalendar: false,
+        calendarLoaded: true,
+        authMessage: 'Indisponibilidade salva.',
+      });
+    } catch (error) {
+      set({
+        isLoadingCalendar: false,
+        authMessage:
+          error instanceof Error ? error.message : 'Nao consegui salvar sua indisponibilidade agora.',
+      });
+    }
+  },
+  removeAvailabilityBlock: async (blockId) => {
+    set({ isLoadingCalendar: true, authMessage: undefined });
+
+    try {
+      const availabilityBlocks = await removeAvailabilityBlock(blockId);
+      set({
+        availabilityBlocks,
+        isLoadingCalendar: false,
+        calendarLoaded: true,
+      });
+    } catch (error) {
+      set({
+        isLoadingCalendar: false,
+        authMessage:
+          error instanceof Error ? error.message : 'Nao consegui remover esta indisponibilidade agora.',
+      });
+    }
+  },
   openRepertoireComposer: () => set({ activeSection: 'repertoire', isCreatingRepertoireSong: true }),
   closeRepertoireComposer: () => set({ isCreatingRepertoireSong: false }),
   selectSchedule: (scheduleId) => {
@@ -402,6 +569,12 @@ export const useAppStore = create<AppState>((set, get) => ({
       schedules: [],
       selectedScheduleId: '',
       repertoire: [],
+      memberDirectory: [],
+      availabilityBlocks: [],
+      isLoadingMembers: false,
+      isLoadingCalendar: false,
+      membersLoaded: false,
+      calendarLoaded: false,
       isCreatingRepertoireSong: false,
       notifications: [],
       initialized: true,
