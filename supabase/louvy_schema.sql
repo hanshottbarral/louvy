@@ -42,6 +42,39 @@ begin
 end;
 $$;
 
+create or replace function public.is_admin(check_user_id uuid default auth.uid())
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.profiles p
+    where p.id = check_user_id
+      and p.role = 'ADMIN'
+  );
+$$;
+
+create or replace function public.is_schedule_member(
+  target_schedule_id uuid,
+  check_user_id uuid default auth.uid()
+)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.schedule_members sm
+    where sm.schedule_id = target_schedule_id
+      and sm.user_id = check_user_id
+  );
+$$;
+
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   name text not null,
@@ -228,19 +261,8 @@ on public.schedules
 for select
 to authenticated
 using (
-  exists (
-    select 1
-    from public.profiles p
-    where p.id = auth.uid()
-      and p.role = 'ADMIN'
-  )
-  or
-  exists (
-    select 1
-    from public.schedule_members sm
-    where sm.schedule_id = schedules.id
-      and sm.user_id = auth.uid()
-  )
+  public.is_admin()
+  or public.is_schedule_member(schedules.id)
 );
 
 drop policy if exists "schedules_insert_admin" on public.schedules;
@@ -249,12 +271,7 @@ on public.schedules
 for insert
 to authenticated
 with check (
-  exists (
-    select 1
-    from public.profiles p
-    where p.id = auth.uid()
-      and p.role = 'ADMIN'
-  )
+  public.is_admin()
 );
 
 drop policy if exists "schedules_update_admin" on public.schedules;
@@ -263,20 +280,10 @@ on public.schedules
 for update
 to authenticated
 using (
-  exists (
-    select 1
-    from public.profiles p
-    where p.id = auth.uid()
-      and p.role = 'ADMIN'
-  )
+  public.is_admin()
 )
 with check (
-  exists (
-    select 1
-    from public.profiles p
-    where p.id = auth.uid()
-      and p.role = 'ADMIN'
-  )
+  public.is_admin()
 );
 
 drop policy if exists "schedules_delete_admin" on public.schedules;
@@ -285,12 +292,7 @@ on public.schedules
 for delete
 to authenticated
 using (
-  exists (
-    select 1
-    from public.profiles p
-    where p.id = auth.uid()
-      and p.role = 'ADMIN'
-  )
+  public.is_admin()
 );
 
 drop policy if exists "schedule_members_select_member_or_admin" on public.schedule_members;
@@ -300,20 +302,8 @@ for select
 to authenticated
 using (
   user_id = auth.uid()
-  or
-  exists (
-    select 1
-    from public.profiles p
-    where p.id = auth.uid()
-      and p.role = 'ADMIN'
-  )
-  or
-  exists (
-    select 1
-    from public.schedule_members sm
-    where sm.schedule_id = schedule_members.schedule_id
-      and sm.user_id = auth.uid()
-  )
+  or public.is_admin()
+  or public.is_schedule_member(schedule_members.schedule_id)
 );
 
 drop policy if exists "schedule_members_insert_admin" on public.schedule_members;
@@ -322,12 +312,7 @@ on public.schedule_members
 for insert
 to authenticated
 with check (
-  exists (
-    select 1
-    from public.profiles p
-    where p.id = auth.uid()
-      and p.role = 'ADMIN'
-  )
+  public.is_admin()
 );
 
 drop policy if exists "schedule_members_update_self_or_admin" on public.schedule_members;
@@ -337,23 +322,11 @@ for update
 to authenticated
 using (
   user_id = auth.uid()
-  or
-  exists (
-    select 1
-    from public.profiles p
-    where p.id = auth.uid()
-      and p.role = 'ADMIN'
-  )
+  or public.is_admin()
 )
 with check (
   user_id = auth.uid()
-  or
-  exists (
-    select 1
-    from public.profiles p
-    where p.id = auth.uid()
-      and p.role = 'ADMIN'
-  )
+  or public.is_admin()
 );
 
 drop policy if exists "schedule_members_delete_admin" on public.schedule_members;
@@ -362,12 +335,7 @@ on public.schedule_members
 for delete
 to authenticated
 using (
-  exists (
-    select 1
-    from public.profiles p
-    where p.id = auth.uid()
-      and p.role = 'ADMIN'
-  )
+  public.is_admin()
 );
 
 drop policy if exists "repertoire_select_authenticated" on public.repertoire_songs;
@@ -375,9 +343,7 @@ create policy "repertoire_select_authenticated"
 on public.repertoire_songs
 for select
 to authenticated
-using (is_active = true or exists (
-  select 1 from public.profiles p where p.id = auth.uid() and p.role = 'ADMIN'
-));
+using (is_active = true or public.is_admin());
 
 drop policy if exists "repertoire_write_admin" on public.repertoire_songs;
 create policy "repertoire_write_admin"
@@ -385,20 +351,10 @@ on public.repertoire_songs
 for all
 to authenticated
 using (
-  exists (
-    select 1
-    from public.profiles p
-    where p.id = auth.uid()
-      and p.role = 'ADMIN'
-  )
+  public.is_admin()
 )
 with check (
-  exists (
-    select 1
-    from public.profiles p
-    where p.id = auth.uid()
-      and p.role = 'ADMIN'
-  )
+  public.is_admin()
 );
 
 drop policy if exists "schedule_songs_select_member_or_admin" on public.schedule_songs;
@@ -407,19 +363,8 @@ on public.schedule_songs
 for select
 to authenticated
 using (
-  exists (
-    select 1
-    from public.profiles p
-    where p.id = auth.uid()
-      and p.role = 'ADMIN'
-  )
-  or
-  exists (
-    select 1
-    from public.schedule_members sm
-    where sm.schedule_id = schedule_songs.schedule_id
-      and sm.user_id = auth.uid()
-  )
+  public.is_admin()
+  or public.is_schedule_member(schedule_songs.schedule_id)
 );
 
 drop policy if exists "schedule_songs_write_admin" on public.schedule_songs;
@@ -428,20 +373,10 @@ on public.schedule_songs
 for all
 to authenticated
 using (
-  exists (
-    select 1
-    from public.profiles p
-    where p.id = auth.uid()
-      and p.role = 'ADMIN'
-  )
+  public.is_admin()
 )
 with check (
-  exists (
-    select 1
-    from public.profiles p
-    where p.id = auth.uid()
-      and p.role = 'ADMIN'
-  )
+  public.is_admin()
 );
 
 drop policy if exists "messages_select_member_or_admin" on public.messages;
@@ -450,19 +385,8 @@ on public.messages
 for select
 to authenticated
 using (
-  exists (
-    select 1
-    from public.profiles p
-    where p.id = auth.uid()
-      and p.role = 'ADMIN'
-  )
-  or
-  exists (
-    select 1
-    from public.schedule_members sm
-    where sm.schedule_id = messages.schedule_id
-      and sm.user_id = auth.uid()
-  )
+  public.is_admin()
+  or public.is_schedule_member(messages.schedule_id)
 );
 
 drop policy if exists "messages_insert_member_or_admin" on public.messages;
@@ -472,21 +396,7 @@ for insert
 to authenticated
 with check (
   auth.uid() = user_id
-  and (
-    exists (
-      select 1
-      from public.profiles p
-      where p.id = auth.uid()
-        and p.role = 'ADMIN'
-    )
-    or
-    exists (
-      select 1
-      from public.schedule_members sm
-      where sm.schedule_id = messages.schedule_id
-        and sm.user_id = auth.uid()
-    )
-  )
+  and (public.is_admin() or public.is_schedule_member(messages.schedule_id))
 );
 
 drop policy if exists "notifications_select_own" on public.notifications;
