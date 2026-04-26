@@ -1,7 +1,7 @@
 'use client';
 
 import { AppRole, ScheduleEventType } from '@louvy/shared';
-import { CalendarDays, CalendarRange, Save, Sparkles } from 'lucide-react';
+import { CalendarDays, CalendarRange, Save, Sparkles, Trash2 } from 'lucide-react';
 import { FormEvent, useEffect, useState } from 'react';
 import { scheduleEventTypeLabel } from '@/lib/labels';
 import { getMonthDayLabel, getWeekdayLabel } from '@/lib/utils';
@@ -16,6 +16,7 @@ const eventTypeOptions = [
 
 export function ScheduleEditorPanel({ schedule }: { schedule: ScheduleView }) {
   const saveSchedule = useAppStore((state) => state.saveSchedule);
+  const deleteSchedule = useAppStore((state) => state.deleteSchedule);
   const currentUser = useAppStore((state) => state.currentUser);
   const authMessage = useAppStore((state) => state.authMessage);
   const [title, setTitle] = useState(schedule.title);
@@ -24,6 +25,9 @@ export function ScheduleEditorPanel({ schedule }: { schedule: ScheduleView }) {
   const [eventType, setEventType] = useState(schedule.eventType);
   const [eventLabel, setEventLabel] = useState(schedule.eventLabel);
   const [notes, setNotes] = useState(schedule.notes ?? '');
+  const [isAutosaving, setIsAutosaving] = useState(false);
+  const [lastSavedSignature, setLastSavedSignature] = useState('');
+  const canManageSchedules = currentUser?.role === AppRole.ADMIN;
 
   useEffect(() => {
     setTitle(schedule.title);
@@ -32,11 +36,75 @@ export function ScheduleEditorPanel({ schedule }: { schedule: ScheduleView }) {
     setEventType(schedule.eventType);
     setEventLabel(schedule.eventLabel);
     setNotes(schedule.notes ?? '');
+    setLastSavedSignature(
+      JSON.stringify({
+        title: schedule.title,
+        date: schedule.date,
+        time: schedule.time,
+        eventType: schedule.eventType,
+        eventLabel: schedule.eventLabel,
+        notes: schedule.notes ?? '',
+      }),
+    );
   }, [schedule]);
+
+  useEffect(() => {
+    if (!canManageSchedules) {
+      return;
+    }
+
+    const nextSignature = JSON.stringify({
+      title,
+      date,
+      time,
+      eventType,
+      eventLabel,
+      notes,
+    });
+
+    if (nextSignature === lastSavedSignature) {
+      return;
+    }
+
+    const timeout = window.setTimeout(async () => {
+      setIsAutosaving(true);
+      const savedId = await saveSchedule({
+        id: schedule.id,
+        title,
+        date,
+        time,
+        eventType,
+        eventLabel,
+        notes,
+      });
+
+      if (savedId) {
+        setLastSavedSignature(nextSignature);
+      }
+
+      setIsAutosaving(false);
+    }, 700);
+
+    return () => {
+      window.clearTimeout(timeout);
+    };
+  }, [
+    canManageSchedules,
+    date,
+    eventLabel,
+    eventType,
+    lastSavedSignature,
+    notes,
+    saveSchedule,
+    schedule.id,
+    time,
+    title,
+  ]);
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
-    await saveSchedule({
+    setIsAutosaving(true);
+    const savedId = await saveSchedule({
       id: schedule.id,
       title,
       date,
@@ -45,9 +113,20 @@ export function ScheduleEditorPanel({ schedule }: { schedule: ScheduleView }) {
       eventLabel,
       notes,
     });
+    if (savedId) {
+      setLastSavedSignature(
+        JSON.stringify({
+          title,
+          date,
+          time,
+          eventType,
+          eventLabel,
+          notes,
+        }),
+      );
+    }
+    setIsAutosaving(false);
   };
-
-  const canManageSchedules = currentUser?.role === AppRole.ADMIN;
 
   const createNewSchedule = async () => {
     const now = new Date();
@@ -82,7 +161,7 @@ export function ScheduleEditorPanel({ schedule }: { schedule: ScheduleView }) {
           type="button"
           onClick={() => void createNewSchedule()}
           disabled={!canManageSchedules}
-          className="rounded-full bg-[var(--foreground)] px-4 py-2 text-sm text-white"
+          className="rounded-full bg-[var(--foreground)] px-4 py-2 text-sm text-white disabled:opacity-60"
         >
           Nova escala
         </button>
@@ -183,6 +262,11 @@ export function ScheduleEditorPanel({ schedule }: { schedule: ScheduleView }) {
           <p className="mt-2">
             {title} em {getWeekdayLabel(date)}, {getMonthDayLabel(date)}, as {time}. Evento: {eventLabel}.
           </p>
+          {canManageSchedules ? (
+            <p className="mt-2 text-xs">
+              {isAutosaving ? 'Salvando alteracoes...' : 'Autosave ativo. Suas alteracoes sao salvas automaticamente.'}
+            </p>
+          ) : null}
         </div>
 
         {authMessage ? (
@@ -191,13 +275,23 @@ export function ScheduleEditorPanel({ schedule }: { schedule: ScheduleView }) {
           </div>
         ) : null}
 
-        <button
-          type="submit"
-          disabled={!canManageSchedules}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] px-4 py-3 text-white"
-        >
-          <Save size={16} /> Salvar escala
-        </button>
+        <div className="grid gap-3 md:grid-cols-2">
+          <button
+            type="submit"
+            disabled={!canManageSchedules}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] px-4 py-3 text-white disabled:opacity-60"
+          >
+            <Save size={16} /> Salvar agora
+          </button>
+          <button
+            type="button"
+            disabled={!canManageSchedules}
+            onClick={() => void deleteSchedule(schedule.id)}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-[var(--line)] px-4 py-3 text-[var(--danger)] disabled:opacity-60"
+          >
+            <Trash2 size={16} /> Excluir escala
+          </button>
+        </div>
       </form>
     </section>
   );

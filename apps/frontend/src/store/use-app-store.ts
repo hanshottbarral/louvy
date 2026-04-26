@@ -1,6 +1,6 @@
 'use client';
 
-import { AppRole, MessageType, ScheduleEventType } from '@louvy/shared';
+import { AppRole, InstrumentRole, MemberStatus, MessageType, ScheduleEventType } from '@louvy/shared';
 import { create } from 'zustand';
 import {
   loadAvailabilityBlocks,
@@ -67,9 +67,18 @@ interface AppState {
   signUp: (name: string, email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   saveSchedule: (payload: ScheduleEditorInput) => Promise<string | undefined>;
+  deleteSchedule: (scheduleId: string) => Promise<void>;
+  addMemberToSchedule: (payload: {
+    scheduleId: string;
+    userId: string;
+    role: InstrumentRole;
+    status: MemberStatus;
+  }) => Promise<void>;
+  removeMemberFromSchedule: (scheduleMemberId: string) => Promise<void>;
   saveRepertoireSong: (payload: RepertoireSongInput) => Promise<string | undefined>;
   reorderSongs: (scheduleId: string, songIds: string[]) => Promise<void>;
   addSongToSchedule: (scheduleId: string, songId: string) => Promise<void>;
+  removeSongFromSchedule: (scheduleId: string, scheduleSongId: string) => Promise<void>;
   sendTextMessage: (scheduleId: string, content: string) => Promise<void>;
   sendAudioMessage: (scheduleId: string, audioUrl: string) => Promise<void>;
 }
@@ -677,6 +686,75 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ selectedScheduleId: data.id });
     return data.id;
   },
+  deleteSchedule: async (scheduleId) => {
+    const currentUser = get().currentUser;
+    if (!currentUser) {
+      return;
+    }
+
+    const syncedUser = await syncCurrentUserProfile(currentUser);
+    if (syncedUser.role !== AppRole.ADMIN) {
+      set({ authMessage: 'Apenas administradores podem excluir escalas.' });
+      return;
+    }
+
+    const { error } = await supabase.from('schedules').delete().eq('id', scheduleId);
+    if (error) {
+      set({ authMessage: error.message });
+      return;
+    }
+
+    await get().refreshData();
+    set({ authMessage: 'Escala removida.' });
+  },
+  addMemberToSchedule: async ({ scheduleId, userId, role, status }) => {
+    const currentUser = get().currentUser;
+    if (!currentUser) {
+      return;
+    }
+
+    const syncedUser = await syncCurrentUserProfile(currentUser);
+    if (syncedUser.role !== AppRole.ADMIN) {
+      set({ authMessage: 'Apenas administradores podem editar membros da escala.' });
+      return;
+    }
+
+    const { error } = await supabase.from('schedule_members').insert({
+      schedule_id: scheduleId,
+      user_id: userId,
+      role,
+      status,
+    });
+
+    if (error) {
+      set({ authMessage: error.message });
+      return;
+    }
+
+    await get().refreshData();
+    set({ selectedScheduleId: scheduleId, authMessage: 'Membro adicionado na escala.' });
+  },
+  removeMemberFromSchedule: async (scheduleMemberId) => {
+    const currentUser = get().currentUser;
+    if (!currentUser) {
+      return;
+    }
+
+    const syncedUser = await syncCurrentUserProfile(currentUser);
+    if (syncedUser.role !== AppRole.ADMIN) {
+      set({ authMessage: 'Apenas administradores podem remover membros da escala.' });
+      return;
+    }
+
+    const { error } = await supabase.from('schedule_members').delete().eq('id', scheduleMemberId);
+    if (error) {
+      set({ authMessage: error.message });
+      return;
+    }
+
+    await get().refreshData();
+    set({ authMessage: 'Membro removido da escala.' });
+  },
   saveRepertoireSong: async (payload) => {
     const currentUser = get().currentUser;
     if (!currentUser) {
@@ -732,7 +810,31 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (!error) {
       await get().refreshData();
       set({ activeSection: 'schedules', selectedScheduleId: scheduleId });
+      return;
     }
+
+    set({ authMessage: error.message });
+  },
+  removeSongFromSchedule: async (scheduleId, scheduleSongId) => {
+    const currentUser = get().currentUser;
+    if (!currentUser) {
+      return;
+    }
+
+    const syncedUser = await syncCurrentUserProfile(currentUser);
+    if (syncedUser.role !== AppRole.ADMIN) {
+      set({ authMessage: 'Apenas administradores podem remover musicas da escala.' });
+      return;
+    }
+
+    const { error } = await supabase.from('schedule_songs').delete().eq('id', scheduleSongId);
+    if (error) {
+      set({ authMessage: error.message });
+      return;
+    }
+
+    await get().refreshData();
+    set({ selectedScheduleId: scheduleId, authMessage: 'Musica removida da escala.' });
   },
   sendTextMessage: async (scheduleId, content) => {
     const currentUser = get().currentUser;
