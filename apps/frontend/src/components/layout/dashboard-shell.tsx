@@ -1,5 +1,6 @@
 'use client';
 
+import { AppRole, ScheduleEventType } from '@louvy/shared';
 import { Bell, CalendarClock, Music2, UserRound } from 'lucide-react';
 import { AuthPanel } from '@/components/auth/auth-panel';
 import { ChatPanel } from '@/components/chat/chat-panel';
@@ -20,10 +21,24 @@ export function DashboardShell() {
   const isLoading = useAppStore((state) => state.isLoading);
   const isHydratingApp = useAppStore((state) => state.isHydratingApp);
   const selectedScheduleId = useAppStore((state) => state.selectedScheduleId);
+  const saveSchedule = useAppStore((state) => state.saveSchedule);
+  const authMessage = useAppStore((state) => state.authMessage);
   const schedule = useAppStore((state) =>
     state.schedules.find((item) => item.id === selectedScheduleId),
   );
   const notifications = useAppStore((state) => state.notifications);
+
+  const createFirstSchedule = () => {
+    const today = new Date().toISOString().slice(0, 10);
+    void saveSchedule({
+      title: 'Primeira escala',
+      date: today,
+      time: '19:00',
+      eventType: ScheduleEventType.SERVICE,
+      eventLabel: 'Culto da noite',
+      notes: 'Comece ajustando equipe, repertorio e observacoes.',
+    });
+  };
 
   if (!initialized || isLoading) {
     return <main className="p-6">Carregando ambiente...</main>;
@@ -53,7 +68,31 @@ export function DashboardShell() {
               </div>
             </div>
           ) : !schedule ? (
-            <main className="p-6">Nenhuma escala selecionada.</main>
+            <div className="p-6">
+              <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Escalas</p>
+              <h2 className="mt-2 text-2xl">Nenhuma escala criada ainda.</h2>
+              <p className="mt-2 max-w-[640px] text-sm text-[var(--muted)]">
+                Assim que a primeira escala existir, ela aparece aqui com equipe, repertorio e chat.
+              </p>
+              {authMessage ? (
+                <p className="mt-4 rounded-2xl bg-[rgba(31,122,92,0.1)] px-4 py-3 text-sm text-[var(--accent-strong)]">
+                  {authMessage}
+                </p>
+              ) : null}
+              {currentUser.role === AppRole.ADMIN ? (
+                <button
+                  type="button"
+                  onClick={createFirstSchedule}
+                  className="mt-6 rounded-2xl bg-[var(--foreground)] px-5 py-3 text-sm text-white"
+                >
+                  Criar primeira escala
+                </button>
+              ) : (
+                <p className="mt-6 text-sm text-[var(--muted)]">
+                  Sua conta esta como musico. Um administrador precisa criar a primeira escala.
+                </p>
+              )}
+            </div>
           ) : schedule ? (
             <>
               <div className="border-b border-[var(--line)] px-5 py-4">
