@@ -258,71 +258,95 @@ export const useAppStore = create<AppState>((set, get) => ({
         isLoading: state.currentUser ? state.isLoading : true,
       }));
 
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
 
-      if (!session?.user) {
+        if (!session?.user) {
+          if (requestId !== bootstrapRequestId) {
+            return;
+          }
+
+          set({
+            currentUser: null,
+            initialized: true,
+            isLoading: false,
+            isHydratingApp: false,
+            schedules: [],
+            repertoire: [],
+            memberDirectory: [],
+            availabilityBlocks: [],
+            isLoadingMembers: false,
+            isLoadingCalendar: false,
+            membersLoaded: false,
+            calendarLoaded: false,
+            isCreatingRepertoireSong: false,
+            notifications: [],
+            loadedMessageScheduleIds: [],
+            loadingScheduleMessages: false,
+          });
+          return;
+        }
+
+        const profile = await fetchProfile(session.user.id);
+        const currentUser: SessionUser = {
+          id: profile.id,
+          name: profile.name,
+          email: profile.email ?? session.user.email ?? '',
+          role: profile.role as AppRole,
+        };
+
+        set({
+          currentUser,
+          initialized: true,
+          isLoading: false,
+          isHydratingApp: true,
+          authMessage: undefined,
+        });
+
+        const payload = await fetchDataForUser(currentUser);
+        if (requestId !== bootstrapRequestId) {
+          return;
+        }
+
+        const firstScheduleId = payload.schedules[0]?.id ?? '';
+        set({
+          schedules: payload.schedules,
+          selectedScheduleId: firstScheduleId,
+          repertoire: payload.repertoire,
+          notifications: payload.notifications,
+          isCreatingRepertoireSong: false,
+          isHydratingApp: false,
+          loadedMessageScheduleIds: [],
+          loadingScheduleMessages: false,
+          authMessage:
+            payload.schedules.length === 0
+              ? 'Nenhuma escala encontrada ainda. Se sua conta ja for admin no banco, voce pode criar a primeira agora.'
+              : undefined,
+        });
+
+        if (firstScheduleId) {
+          void get().loadScheduleMessages(firstScheduleId);
+        }
+      } catch (error) {
         if (requestId !== bootstrapRequestId) {
           return;
         }
 
         set({
-          currentUser: null,
           initialized: true,
           isLoading: false,
           isHydratingApp: false,
           schedules: [],
-          repertoire: [],
-          memberDirectory: [],
-          availabilityBlocks: [],
-          isLoadingMembers: false,
-          isLoadingCalendar: false,
-          membersLoaded: false,
-          calendarLoaded: false,
-          isCreatingRepertoireSong: false,
-          notifications: [],
+          selectedScheduleId: '',
           loadedMessageScheduleIds: [],
           loadingScheduleMessages: false,
+          authMessage:
+            error instanceof Error
+              ? error.message
+              : 'Nao consegui carregar suas escalas agora. Tente novamente em instantes.',
         });
-        return;
-      }
-
-      const profile = await fetchProfile(session.user.id);
-      const currentUser: SessionUser = {
-        id: profile.id,
-        name: profile.name,
-        email: profile.email ?? session.user.email ?? '',
-        role: profile.role as AppRole,
-      };
-
-      set({
-        currentUser,
-        initialized: true,
-        isLoading: false,
-        isHydratingApp: true,
-        authMessage: undefined,
-      });
-
-      const payload = await fetchDataForUser(currentUser);
-      if (requestId !== bootstrapRequestId) {
-        return;
-      }
-
-      const firstScheduleId = payload.schedules[0]?.id ?? '';
-      set({
-        schedules: payload.schedules,
-        selectedScheduleId: firstScheduleId,
-        repertoire: payload.repertoire,
-        notifications: payload.notifications,
-        isCreatingRepertoireSong: false,
-        isHydratingApp: false,
-        loadedMessageScheduleIds: [],
-        loadingScheduleMessages: false,
-      });
-
-      if (firstScheduleId) {
-        void get().loadScheduleMessages(firstScheduleId);
       }
     };
 
@@ -338,23 +362,37 @@ export const useAppStore = create<AppState>((set, get) => ({
       return;
     }
 
-    const payload = await fetchDataForUser(currentUser);
-    const previousSelected = get().selectedScheduleId;
-    const selectedScheduleId =
-      payload.schedules.find((schedule) => schedule.id === previousSelected)?.id ??
-      payload.schedules[0]?.id ??
-      '';
+    try {
+      const payload = await fetchDataForUser(currentUser);
+      const previousSelected = get().selectedScheduleId;
+      const selectedScheduleId =
+        payload.schedules.find((schedule) => schedule.id === previousSelected)?.id ??
+        payload.schedules[0]?.id ??
+        '';
 
-    set({
-      schedules: payload.schedules,
-      selectedScheduleId,
-      repertoire: payload.repertoire,
-      notifications: payload.notifications,
-      isHydratingApp: false,
-    });
+      set({
+        schedules: payload.schedules,
+        selectedScheduleId,
+        repertoire: payload.repertoire,
+        notifications: payload.notifications,
+        isHydratingApp: false,
+        authMessage:
+          payload.schedules.length === 0
+            ? 'Nenhuma escala encontrada ainda. Se sua conta ja for admin no banco, voce pode criar a primeira agora.'
+            : undefined,
+      });
 
-    if (selectedScheduleId) {
-      void get().loadScheduleMessages(selectedScheduleId, { force: true });
+      if (selectedScheduleId) {
+        void get().loadScheduleMessages(selectedScheduleId, { force: true });
+      }
+    } catch (error) {
+      set({
+        isHydratingApp: false,
+        authMessage:
+          error instanceof Error
+            ? error.message
+            : 'Nao consegui atualizar as escalas agora.',
+      });
     }
   },
   loadScheduleMessages: async (scheduleId, options) => {
