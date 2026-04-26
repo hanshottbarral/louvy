@@ -47,6 +47,16 @@ export interface MinistrySongView extends SongDto {
   tags: string[];
 }
 
+export interface RepertoireSongInput {
+  id?: string;
+  name: string;
+  key: string;
+  bpm?: number | null;
+  youtubeUrl?: string;
+  category: string;
+  tags: string[];
+}
+
 export interface ScheduleEditorInput {
   id?: string;
   title: string;

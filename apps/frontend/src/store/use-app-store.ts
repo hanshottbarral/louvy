@@ -9,6 +9,7 @@ import {
   AuthMode,
   MinistrySongView,
   NotificationView,
+  RepertoireSongInput,
   ScheduleEditorInput,
   ScheduleView,
   SessionUser,
@@ -26,6 +27,7 @@ interface AppState {
   selectedScheduleId: string;
   notifications: NotificationView[];
   repertoire: MinistrySongView[];
+  isCreatingRepertoireSong: boolean;
   typingUser?: string;
   loadingScheduleMessages: boolean;
   loadedMessageScheduleIds: string[];
@@ -34,12 +36,15 @@ interface AppState {
   loadScheduleMessages: (scheduleId: string, options?: { force?: boolean }) => Promise<void>;
   setAuthMode: (mode: AuthMode) => void;
   setActiveSection: (section: AppSection) => void;
+  openRepertoireComposer: () => void;
+  closeRepertoireComposer: () => void;
   selectSchedule: (scheduleId: string) => void;
   markTyping: (name?: string) => void;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (name: string, email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   saveSchedule: (payload: ScheduleEditorInput) => Promise<string | undefined>;
+  saveRepertoireSong: (payload: RepertoireSongInput) => Promise<string | undefined>;
   reorderSongs: (scheduleId: string, songIds: string[]) => Promise<void>;
   addSongToSchedule: (scheduleId: string, songId: string) => Promise<void>;
   sendTextMessage: (scheduleId: string, content: string) => Promise<void>;
@@ -205,6 +210,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   selectedScheduleId: '',
   notifications: [],
   repertoire: [],
+  isCreatingRepertoireSong: false,
   typingUser: undefined,
   loadingScheduleMessages: false,
   loadedMessageScheduleIds: [],
@@ -235,6 +241,7 @@ export const useAppStore = create<AppState>((set, get) => ({
           isHydratingApp: false,
           schedules: [],
           repertoire: [],
+          isCreatingRepertoireSong: false,
           notifications: [],
           loadedMessageScheduleIds: [],
           loadingScheduleMessages: false,
@@ -269,6 +276,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         selectedScheduleId: firstScheduleId,
         repertoire: payload.repertoire,
         notifications: payload.notifications,
+        isCreatingRepertoireSong: false,
         isHydratingApp: false,
         loadedMessageScheduleIds: [],
         loadingScheduleMessages: false,
@@ -345,6 +353,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   setAuthMode: (mode) => set({ authMode: mode, authMessage: undefined }),
   setActiveSection: (section) => set({ activeSection: section }),
+  openRepertoireComposer: () => set({ activeSection: 'repertoire', isCreatingRepertoireSong: true }),
+  closeRepertoireComposer: () => set({ isCreatingRepertoireSong: false }),
   selectSchedule: (scheduleId) => {
     set({ selectedScheduleId: scheduleId });
     void get().loadScheduleMessages(scheduleId);
@@ -392,6 +402,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       schedules: [],
       selectedScheduleId: '',
       repertoire: [],
+      isCreatingRepertoireSong: false,
       notifications: [],
       initialized: true,
       isLoading: false,
@@ -431,6 +442,38 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     await get().refreshData();
     set({ selectedScheduleId: data.id });
+    return data.id;
+  },
+  saveRepertoireSong: async (payload) => {
+    const currentUser = get().currentUser;
+    if (!currentUser) {
+      return undefined;
+    }
+
+    const body = {
+      name: payload.name.trim(),
+      musical_key: payload.key.trim(),
+      bpm: payload.bpm ?? null,
+      youtube_url: payload.youtubeUrl?.trim() ? payload.youtubeUrl.trim() : null,
+      category: payload.category.trim(),
+      tags: payload.tags,
+      created_by: currentUser.id,
+      is_active: true,
+    };
+
+    if (!body.name || !body.musical_key || !body.category) {
+      set({ authMessage: 'Preencha nome, tom e categoria da musica.' });
+      return undefined;
+    }
+
+    const { data, error } = await supabase.from('repertoire_songs').insert(body).select('id').single();
+    if (error) {
+      set({ authMessage: error.message });
+      return undefined;
+    }
+
+    await get().refreshData();
+    set({ activeSection: 'repertoire', isCreatingRepertoireSong: false, authMessage: undefined });
     return data.id;
   },
   reorderSongs: async (scheduleId, songIds) => {

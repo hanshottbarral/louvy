@@ -13,10 +13,11 @@ export function Sidebar() {
   const selectSchedule = useAppStore((state) => state.selectSchedule);
   const setActiveSection = useAppStore((state) => state.setActiveSection);
   const saveSchedule = useAppStore((state) => state.saveSchedule);
+  const openRepertoireComposer = useAppStore((state) => state.openRepertoireComposer);
   const signOut = useAppStore((state) => state.signOut);
   const currentUser = useAppStore((state) => state.currentUser);
 
-  const quickCreate = () => {
+  const quickCreateSchedule = () => {
     const today = new Date().toISOString().slice(0, 10);
     void saveSchedule({
       title: 'Nova escala',
@@ -28,6 +29,15 @@ export function Sidebar() {
     });
   };
 
+  const contextualCreate = () => {
+    if (activeSection === 'repertoire') {
+      openRepertoireComposer();
+      return;
+    }
+
+    quickCreateSchedule();
+  };
+
   return (
     <aside className="flex min-h-[240px] flex-col rounded-[28px] bg-[var(--sidebar)] p-4 text-[var(--sidebar-foreground)]">
       <div className="mb-5 flex items-center justify-between">
@@ -36,8 +46,9 @@ export function Sidebar() {
           <h1 className="mt-1 text-2xl">Ministerio</h1>
         </div>
         <button
-          onClick={quickCreate}
+          onClick={contextualCreate}
           className="rounded-full border border-white/12 p-2 text-white/90"
+          title={activeSection === 'repertoire' ? 'Cadastrar musica' : 'Criar escala'}
         >
           <Plus size={18} />
         </button>

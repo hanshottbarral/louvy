@@ -1,7 +1,8 @@
 'use client';
 
 import { Search, PlusCircle, Music4 } from 'lucide-react';
-import { useDeferredValue, useMemo, useState } from 'react';
+import { FormEvent, useDeferredValue, useMemo, useState } from 'react';
+import { AppRole } from '@louvy/shared';
 import { formatScheduleDate } from '@/lib/utils';
 import { useAppStore } from '@/store/use-app-store';
 
@@ -10,7 +11,19 @@ export function RepertoirePanel() {
   const schedules = useAppStore((state) => state.schedules);
   const selectedScheduleId = useAppStore((state) => state.selectedScheduleId);
   const addSongToSchedule = useAppStore((state) => state.addSongToSchedule);
+  const currentUser = useAppStore((state) => state.currentUser);
+  const authMessage = useAppStore((state) => state.authMessage);
+  const isCreatingRepertoireSong = useAppStore((state) => state.isCreatingRepertoireSong);
+  const openRepertoireComposer = useAppStore((state) => state.openRepertoireComposer);
+  const closeRepertoireComposer = useAppStore((state) => state.closeRepertoireComposer);
+  const saveRepertoireSong = useAppStore((state) => state.saveRepertoireSong);
   const [query, setQuery] = useState('');
+  const [name, setName] = useState('');
+  const [key, setKey] = useState('');
+  const [bpm, setBpm] = useState('');
+  const [youtubeUrl, setYoutubeUrl] = useState('');
+  const [category, setCategory] = useState('Geral');
+  const [tags, setTags] = useState('');
   const deferredQuery = useDeferredValue(query);
 
   const filteredSongs = useMemo(() => {
@@ -28,6 +41,33 @@ export function RepertoirePanel() {
   }, [deferredQuery, repertoire]);
 
   const selectedSchedule = schedules.find((schedule) => schedule.id === selectedScheduleId);
+
+  const handleCreateSong = async (event: FormEvent) => {
+    event.preventDefault();
+
+    const created = await saveRepertoireSong({
+      name,
+      key,
+      bpm: bpm ? Number(bpm) : null,
+      youtubeUrl,
+      category,
+      tags: tags
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean),
+    });
+
+    if (!created) {
+      return;
+    }
+
+    setName('');
+    setKey('');
+    setBpm('');
+    setYoutubeUrl('');
+    setCategory('Geral');
+    setTags('');
+  };
 
   return (
     <section className="space-y-4">
@@ -63,6 +103,81 @@ export function RepertoirePanel() {
               Repertorio vivo
             </span>
           </div>
+
+          {currentUser?.role === AppRole.ADMIN ? (
+            <div className="mb-4 rounded-2xl border border-[var(--line)] bg-[var(--surface-strong)] p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="font-semibold">Cadastrar musica</p>
+                  <p className="text-sm text-[var(--muted)]">
+                    Use o botao + desta aba para abrir este formulario quando quiser.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={isCreatingRepertoireSong ? closeRepertoireComposer : openRepertoireComposer}
+                  className="rounded-full bg-[var(--foreground)] px-4 py-2 text-sm text-white"
+                >
+                  {isCreatingRepertoireSong ? 'Fechar' : 'Nova musica'}
+                </button>
+              </div>
+
+              {isCreatingRepertoireSong ? (
+                <form onSubmit={handleCreateSong} className="mt-4 grid gap-3 md:grid-cols-2">
+                  <input
+                    value={name}
+                    onChange={(event) => setName(event.target.value)}
+                    placeholder="Nome da musica"
+                    className="rounded-2xl border border-[var(--line)] bg-white px-4 py-3 outline-none"
+                  />
+                  <input
+                    value={key}
+                    onChange={(event) => setKey(event.target.value)}
+                    placeholder="Tom"
+                    className="rounded-2xl border border-[var(--line)] bg-white px-4 py-3 outline-none"
+                  />
+                  <input
+                    value={bpm}
+                    onChange={(event) => setBpm(event.target.value)}
+                    placeholder="BPM"
+                    inputMode="numeric"
+                    className="rounded-2xl border border-[var(--line)] bg-white px-4 py-3 outline-none"
+                  />
+                  <input
+                    value={category}
+                    onChange={(event) => setCategory(event.target.value)}
+                    placeholder="Categoria"
+                    className="rounded-2xl border border-[var(--line)] bg-white px-4 py-3 outline-none"
+                  />
+                  <input
+                    value={youtubeUrl}
+                    onChange={(event) => setYoutubeUrl(event.target.value)}
+                    placeholder="Link do YouTube"
+                    className="rounded-2xl border border-[var(--line)] bg-white px-4 py-3 outline-none md:col-span-2"
+                  />
+                  <input
+                    value={tags}
+                    onChange={(event) => setTags(event.target.value)}
+                    placeholder="Tags separadas por virgula"
+                    className="rounded-2xl border border-[var(--line)] bg-white px-4 py-3 outline-none md:col-span-2"
+                  />
+                  {authMessage ? (
+                    <p className="md:col-span-2 rounded-2xl bg-[rgba(31,122,92,0.1)] px-4 py-3 text-sm text-[var(--accent-strong)]">
+                      {authMessage}
+                    </p>
+                  ) : null}
+                  <div className="md:col-span-2 flex justify-end">
+                    <button
+                      type="submit"
+                      className="rounded-2xl bg-[var(--foreground)] px-5 py-3 text-sm text-white"
+                    >
+                      Salvar musica
+                    </button>
+                  </div>
+                </form>
+              ) : null}
+            </div>
+          ) : null}
 
           <div className="grid gap-3 md:grid-cols-2">
             {filteredSongs.map((song) => (
