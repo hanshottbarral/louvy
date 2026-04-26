@@ -9,8 +9,9 @@ import {
   saveAvailabilityBlock,
   saveMemberDirectoryProfile,
 } from '@/lib/member-calendar';
+import { fetchRepertoireLibrary, insertRepertoireSong } from '@/lib/repertoire';
 import { supabase } from '@/lib/supabase';
-import { mapMessages, mapNotifications, mapRepertoire, mapSchedules } from '@/lib/supabase-mappers';
+import { mapMessages, mapNotifications, mapSchedules } from '@/lib/supabase-mappers';
 import {
   AppSection,
   AvailabilityBlock,
@@ -146,12 +147,6 @@ async function fetchDataForUser(currentUser: SessionUser) {
           .order('position', { ascending: true })
       : Promise.resolve({ data: [], error: null });
 
-  const repertoirePromise = supabase
-    .from('repertoire_songs')
-    .select('id, name, musical_key, bpm, youtube_url, category, tags, created_at')
-    .eq('is_active', true)
-    .order('name', { ascending: true });
-
   const notificationsPromise = supabase
     .from('notifications')
     .select('id, title, body, read_at, created_at')
@@ -159,16 +154,16 @@ async function fetchDataForUser(currentUser: SessionUser) {
     .order('created_at', { ascending: false })
     .limit(30);
 
-  const [schedulesResult, membersResult, songsResult, repertoireResult, notificationsResult] =
+  const [schedulesResult, membersResult, songsResult, repertoire, notificationsResult] =
     await Promise.all([
       schedulesPromise,
       membersPromise,
       songsPromise,
-      repertoirePromise,
+      fetchRepertoireLibrary(),
       notificationsPromise,
     ]);
 
-  for (const result of [schedulesResult, membersResult, songsResult, repertoireResult, notificationsResult]) {
+  for (const result of [schedulesResult, membersResult, songsResult, notificationsResult]) {
     if (result.error) {
       throw result.error;
     }
@@ -197,7 +192,7 @@ async function fetchDataForUser(currentUser: SessionUser) {
 
   return {
     schedules,
-    repertoire: mapRepertoire(repertoireResult.data ?? []),
+    repertoire,
     notifications: mapNotifications(notificationsResult.data ?? []),
   };
 }
@@ -650,31 +645,26 @@ export const useAppStore = create<AppState>((set, get) => ({
       return undefined;
     }
 
-    const body = {
-      name: payload.name.trim(),
-      musical_key: payload.key.trim(),
-      bpm: payload.bpm ?? null,
-      youtube_url: payload.youtubeUrl?.trim() ? payload.youtubeUrl.trim() : null,
-      category: payload.category.trim(),
-      tags: payload.tags,
-      created_by: currentUser.id,
-      is_active: true,
-    };
-
-    if (!body.name || !body.musical_key || !body.category) {
+    if (!payload.name.trim() || !payload.key.trim() || !payload.category.trim()) {
       set({ authMessage: 'Preencha nome, tom e categoria da musica.' });
       return undefined;
     }
 
-    const { data, error } = await supabase.from('repertoire_songs').insert(body).select('id').single();
-    if (error) {
-      set({ authMessage: error.message });
+    try {
+      const result = await insertRepertoireSong(payload, currentUser.id);
+      await get().refreshData();
+      set({
+        activeSection: 'repertoire',
+        isCreatingRepertoireSong: false,
+        authMessage: result.usedLegacyFallback
+          ? 'Musica salva. Para persistir artista e duracao no banco, aplique o patch SQL novo do repertorio.'
+          : undefined,
+      });
+      return result.id;
+    } catch (error) {
+      set({ authMessage: error instanceof Error ? error.message : 'Nao consegui salvar esta musica.' });
       return undefined;
     }
-
-    await get().refreshData();
-    set({ activeSection: 'repertoire', isCreatingRepertoireSong: false, authMessage: undefined });
-    return data.id;
   },
   reorderSongs: async (scheduleId, songIds) => {
     const updates = songIds.map((songId, index) =>

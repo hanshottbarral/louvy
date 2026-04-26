@@ -50,3 +50,32 @@ export function formatScheduleDate(date: string) {
     year: 'numeric',
   }).format(new Date(`${date}T12:00:00`));
 }
+
+export function formatDuration(seconds?: number | null) {
+  if (!seconds || Number.isNaN(seconds) || seconds <= 0) {
+    return '--:--';
+  }
+
+  const totalSeconds = Math.round(seconds);
+  const minutes = Math.floor(totalSeconds / 60);
+  const remainingSeconds = totalSeconds % 60;
+  return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
+}
+
+export function parseDurationInput(value: string) {
+  const normalized = value.trim();
+  if (!normalized) {
+    return null;
+  }
+
+  if (/^\d+$/.test(normalized)) {
+    return Number(normalized);
+  }
+
+  const parts = normalized.split(':').map((part) => part.trim());
+  if (parts.length === 2 && parts.every((part) => /^\d+$/.test(part))) {
+    return Number(parts[0]) * 60 + Number(parts[1]);
+  }
+
+  return null;
+}

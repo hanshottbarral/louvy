@@ -105,13 +105,17 @@ export interface MinistrySongView extends SongDto {
   category: string;
   lastPlayed?: string;
   tags: string[];
+  artist?: string;
+  durationSeconds?: number | null;
 }
 
 export interface RepertoireSongInput {
   id?: string;
   name: string;
+  artist?: string;
   key: string;
   bpm?: number | null;
+  durationSeconds?: number | null;
   youtubeUrl?: string;
   category: string;
   tags: string[];

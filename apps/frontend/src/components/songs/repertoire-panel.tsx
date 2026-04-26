@@ -1,10 +1,11 @@
 'use client';
 
-import { Search, PlusCircle, Music4 } from 'lucide-react';
-import { FormEvent, useDeferredValue, useMemo, useState } from 'react';
+import { Search, PlusCircle, Music4, WandSparkles } from 'lucide-react';
+import { FormEvent, useDeferredValue, useMemo, useRef, useState } from 'react';
 import { AppRole } from '@louvy/shared';
-import { formatScheduleDate } from '@/lib/utils';
+import { formatDuration, formatScheduleDate, parseDurationInput } from '@/lib/utils';
 import { useAppStore } from '@/store/use-app-store';
+import { YoutubeMetadata } from '@/lib/youtube-metadata';
 
 export function RepertoirePanel() {
   const repertoire = useAppStore((state) => state.repertoire);
@@ -19,11 +20,16 @@ export function RepertoirePanel() {
   const saveRepertoireSong = useAppStore((state) => state.saveRepertoireSong);
   const [query, setQuery] = useState('');
   const [name, setName] = useState('');
+  const [artist, setArtist] = useState('');
   const [key, setKey] = useState('');
   const [bpm, setBpm] = useState('');
+  const [duration, setDuration] = useState('');
   const [youtubeUrl, setYoutubeUrl] = useState('');
   const [category, setCategory] = useState('Geral');
   const [tags, setTags] = useState('');
+  const [autofillMessage, setAutofillMessage] = useState('');
+  const [isAutofilling, setIsAutofilling] = useState(false);
+  const lastAutofilledUrl = useRef('');
   const deferredQuery = useDeferredValue(query);
 
   const filteredSongs = useMemo(() => {
@@ -42,13 +48,55 @@ export function RepertoirePanel() {
 
   const selectedSchedule = schedules.find((schedule) => schedule.id === selectedScheduleId);
 
+  const handleAutofillFromYoutube = async (options?: { silentIfMissing?: boolean }) => {
+    const normalizedUrl = youtubeUrl.trim();
+
+    if (!normalizedUrl) {
+      if (!options?.silentIfMissing) {
+        setAutofillMessage('Cole primeiro um link do YouTube.');
+      }
+      return;
+    }
+
+    if (normalizedUrl === lastAutofilledUrl.current && name.trim()) {
+      return;
+    }
+
+    setIsAutofilling(true);
+    setAutofillMessage('');
+
+    try {
+      const response = await fetch(`/api/youtube-metadata?url=${encodeURIComponent(normalizedUrl)}`);
+      const payload = (await response.json()) as YoutubeMetadata & { error?: string };
+
+      if (!response.ok) {
+        setAutofillMessage(payload.error ?? 'Nao consegui ler esse video agora.');
+        return;
+      }
+
+      setName(payload.title || '');
+      setArtist(payload.artist || '');
+      setKey(payload.key || '');
+      setBpm(payload.bpm ? String(payload.bpm) : '');
+      setDuration(payload.durationSeconds ? formatDuration(payload.durationSeconds) : '');
+      lastAutofilledUrl.current = normalizedUrl;
+      setAutofillMessage('Dados puxados do link. Ajuste o que precisar antes de salvar.');
+    } catch {
+      setAutofillMessage('Nao consegui consultar o link agora. Tente de novo em instantes.');
+    } finally {
+      setIsAutofilling(false);
+    }
+  };
+
   const handleCreateSong = async (event: FormEvent) => {
     event.preventDefault();
 
     const created = await saveRepertoireSong({
       name,
+      artist,
       key,
       bpm: bpm ? Number(bpm) : null,
+      durationSeconds: parseDurationInput(duration),
       youtubeUrl,
       category,
       tags: tags
@@ -62,11 +110,15 @@ export function RepertoirePanel() {
     }
 
     setName('');
+    setArtist('');
     setKey('');
     setBpm('');
+    setDuration('');
     setYoutubeUrl('');
     setCategory('Geral');
     setTags('');
+    setAutofillMessage('');
+    lastAutofilledUrl.current = '';
   };
 
   return (
@@ -131,6 +183,12 @@ export function RepertoirePanel() {
                     className="rounded-2xl border border-[var(--line)] bg-white px-4 py-3 outline-none"
                   />
                   <input
+                    value={artist}
+                    onChange={(event) => setArtist(event.target.value)}
+                    placeholder="Artista / ministerio"
+                    className="rounded-2xl border border-[var(--line)] bg-white px-4 py-3 outline-none"
+                  />
+                  <input
                     value={key}
                     onChange={(event) => setKey(event.target.value)}
                     placeholder="Tom"
@@ -144,6 +202,12 @@ export function RepertoirePanel() {
                     className="rounded-2xl border border-[var(--line)] bg-white px-4 py-3 outline-none"
                   />
                   <input
+                    value={duration}
+                    onChange={(event) => setDuration(event.target.value)}
+                    placeholder="Duracao (mm:ss)"
+                    className="rounded-2xl border border-[var(--line)] bg-white px-4 py-3 outline-none"
+                  />
+                  <input
                     value={category}
                     onChange={(event) => setCategory(event.target.value)}
                     placeholder="Categoria"
@@ -151,16 +215,47 @@ export function RepertoirePanel() {
                   />
                   <input
                     value={youtubeUrl}
-                    onChange={(event) => setYoutubeUrl(event.target.value)}
+                    onChange={(event) => {
+                      setYoutubeUrl(event.target.value);
+                      if (lastAutofilledUrl.current !== event.target.value.trim()) {
+                        lastAutofilledUrl.current = '';
+                      }
+                    }}
+                    onBlur={() => {
+                      if (!name.trim()) {
+                        void handleAutofillFromYoutube({ silentIfMissing: true });
+                      }
+                    }}
                     placeholder="Link do YouTube"
                     className="rounded-2xl border border-[var(--line)] bg-white px-4 py-3 outline-none md:col-span-2"
                   />
+                  <div className="md:col-span-2 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--line)] bg-white px-4 py-3">
+                    <div className="text-sm text-[var(--muted)]">
+                      Cole o link e puxe titulo, artista, duracao, tom e bpm para revisar antes de salvar.
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => void handleAutofillFromYoutube()}
+                      disabled={isAutofilling}
+                      className="rounded-full bg-[var(--foreground)] px-4 py-2 text-sm text-white disabled:opacity-60"
+                    >
+                      <span className="inline-flex items-center gap-2">
+                        <WandSparkles size={16} />
+                        {isAutofilling ? 'Lendo link...' : 'Preencher pelo link'}
+                      </span>
+                    </button>
+                  </div>
                   <input
                     value={tags}
                     onChange={(event) => setTags(event.target.value)}
                     placeholder="Tags separadas por virgula"
                     className="rounded-2xl border border-[var(--line)] bg-white px-4 py-3 outline-none md:col-span-2"
                   />
+                  {autofillMessage ? (
+                    <p className="md:col-span-2 rounded-2xl bg-[rgba(31,122,92,0.1)] px-4 py-3 text-sm text-[var(--accent-strong)]">
+                      {autofillMessage}
+                    </p>
+                  ) : null}
                   {authMessage ? (
                     <p className="md:col-span-2 rounded-2xl bg-[rgba(31,122,92,0.1)] px-4 py-3 text-sm text-[var(--accent-strong)]">
                       {authMessage}
@@ -189,8 +284,12 @@ export function RepertoirePanel() {
                   <div>
                     <p className="font-semibold">{song.name}</p>
                     <p className="mt-1 text-sm text-[var(--muted)]">
-                      {song.category} • Tom {song.key}
+                      {[song.artist, song.category].filter(Boolean).join(' • ') || song.category}
+                    </p>
+                    <p className="mt-1 text-sm text-[var(--muted)]">
+                      Tom {song.key}
                       {song.bpm ? ` • ${song.bpm} BPM` : ''}
+                      {song.durationSeconds ? ` • ${formatDuration(song.durationSeconds)}` : ''}
                     </p>
                   </div>
                   <Music4 size={18} className="text-[var(--muted)]" />
