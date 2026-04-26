@@ -153,7 +153,7 @@ function mergeDirectory(
       userId: profile.id,
       name: profile.name,
       email: profile.email ?? '',
-      appRole: local?.appRole ?? profile.role,
+      appRole: profile.role,
       assignments: local?.assignments ?? remoteAssignmentsMap.get(profile.id) ?? [],
       vocalRanges: local?.vocalRanges ?? remoteVocalMap.get(profile.id) ?? [],
       notes: local?.notes ?? remoteNotes.get(profile.id),
@@ -200,6 +200,7 @@ export async function saveMemberDirectoryProfile(currentUser: SessionUser, paylo
   upsertMemberMetadata(payload);
 
   const remoteErrors: string[] = [];
+  let rolePersisted = false;
 
   const { error: roleError } = await supabase
     .from('profiles')
@@ -208,6 +209,8 @@ export async function saveMemberDirectoryProfile(currentUser: SessionUser, paylo
 
   if (roleError && !isMissingRelationError(roleError)) {
     remoteErrors.push(roleError.message);
+  } else if (!roleError) {
+    rolePersisted = true;
   }
 
   const { error: notesError } = await supabase.from('member_profiles').upsert(
@@ -263,7 +266,7 @@ export async function saveMemberDirectoryProfile(currentUser: SessionUser, paylo
 
   const directory = await loadMemberDirectory();
   const updatedCurrentUser =
-    payload.userId === currentUser.id
+    payload.userId === currentUser.id && rolePersisted
       ? {
           ...currentUser,
           role: payload.appRole,

@@ -87,6 +87,16 @@ async function fetchProfile(userId: string) {
   return data;
 }
 
+async function syncCurrentUserProfile(stateUser: SessionUser) {
+  const profile = await fetchProfile(stateUser.id);
+  return {
+    ...stateUser,
+    name: profile.name,
+    email: profile.email ?? stateUser.email,
+    role: profile.role as AppRole,
+  } satisfies SessionUser;
+}
+
 async function fetchDataForUser(currentUser: SessionUser) {
   let scheduleIds: string[] = [];
 
@@ -587,6 +597,23 @@ export const useAppStore = create<AppState>((set, get) => ({
       return undefined;
     }
 
+    const syncedUser = await syncCurrentUserProfile(currentUser);
+    if (
+      syncedUser.name !== currentUser.name ||
+      syncedUser.email !== currentUser.email ||
+      syncedUser.role !== currentUser.role
+    ) {
+      set({ currentUser: syncedUser });
+    }
+
+    if (syncedUser.role !== AppRole.ADMIN) {
+      set({
+        authMessage:
+          'Sua conta ainda nao esta com permissao de admin no Supabase. Aplique o patch member_calendar_patch.sql e confirme seu perfil como admin na aba Membros.',
+      });
+      return undefined;
+    }
+
     const body = {
       title: payload.title,
       event_date: payload.date,
@@ -594,7 +621,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       event_type: payload.eventType,
       event_label: payload.eventLabel,
       notes: payload.notes ?? null,
-      created_by: currentUser.id,
+      created_by: syncedUser.id,
     };
 
     if (payload.id) {

@@ -99,7 +99,7 @@ export function DashboardShell() {
                 </button>
               ) : (
                 <p className="mt-6 text-sm text-[var(--muted)]">
-                  Sua conta esta como musico. Um administrador precisa criar a primeira escala.
+                  Sua conta esta como musico no banco. Depois de aplicar o patch de membros no Supabase, marque seu perfil como admin para liberar a criacao da primeira escala.
                 </p>
               )}
             </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { ScheduleEventType } from '@louvy/shared';
+import { AppRole, ScheduleEventType } from '@louvy/shared';
 import { CalendarDays, CalendarRange, Save, Sparkles } from 'lucide-react';
 import { FormEvent, useEffect, useState } from 'react';
 import { scheduleEventTypeLabel } from '@/lib/labels';
@@ -16,6 +16,8 @@ const eventTypeOptions = [
 
 export function ScheduleEditorPanel({ schedule }: { schedule: ScheduleView }) {
   const saveSchedule = useAppStore((state) => state.saveSchedule);
+  const currentUser = useAppStore((state) => state.currentUser);
+  const authMessage = useAppStore((state) => state.authMessage);
   const [title, setTitle] = useState(schedule.title);
   const [date, setDate] = useState(schedule.date);
   const [time, setTime] = useState(schedule.time);
@@ -44,6 +46,8 @@ export function ScheduleEditorPanel({ schedule }: { schedule: ScheduleView }) {
       notes,
     });
   };
+
+  const canManageSchedules = currentUser?.role === AppRole.ADMIN;
 
   const createNewSchedule = async () => {
     const now = new Date();
@@ -77,11 +81,18 @@ export function ScheduleEditorPanel({ schedule }: { schedule: ScheduleView }) {
         <button
           type="button"
           onClick={() => void createNewSchedule()}
+          disabled={!canManageSchedules}
           className="rounded-full bg-[var(--foreground)] px-4 py-2 text-sm text-white"
         >
           Nova escala
         </button>
       </div>
+
+      {!canManageSchedules ? (
+        <div className="mb-4 rounded-2xl bg-[var(--surface-strong)] px-4 py-3 text-sm text-[var(--muted)]">
+          Seu perfil ainda nao esta como admin no banco. Sem isso, a criacao e a edicao de escalas ficam bloqueadas.
+        </div>
+      ) : null}
 
       <form className="space-y-4" onSubmit={handleSubmit}>
         <label className="block">
@@ -174,8 +185,15 @@ export function ScheduleEditorPanel({ schedule }: { schedule: ScheduleView }) {
           </p>
         </div>
 
+        {authMessage ? (
+          <div className="rounded-2xl bg-[rgba(31,122,92,0.1)] px-4 py-3 text-sm text-[var(--accent-strong)]">
+            {authMessage}
+          </div>
+        ) : null}
+
         <button
           type="submit"
+          disabled={!canManageSchedules}
           className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] px-4 py-3 text-white"
         >
           <Save size={16} /> Salvar escala
