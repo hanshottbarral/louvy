@@ -79,3 +79,36 @@ export function parseDurationInput(value: string) {
 
   return null;
 }
+
+const churchWordReplacements: Array<[RegExp, string]> = [
+  [/\bAdoracao\b/gi, 'Adoração'],
+  [/\bCelebracao\b/gi, 'Celebração'],
+  [/\bMinistracao\b/gi, 'Ministração'],
+  [/\bMinisterio\b/gi, 'Ministério'],
+  [/\bRepertorio\b/gi, 'Repertório'],
+  [/\bObservacoes\b/gi, 'Observações'],
+  [/\bPermissao\b/gi, 'Permissão'],
+  [/\bConfiguracoes\b/gi, 'Configurações'],
+  [/\bCalendario\b/gi, 'Calendário'],
+  [/\bComunhao\b/gi, 'Comunhão'],
+  [/\bNao\b/gi, 'Não'],
+  [/\bnao\b/gi, 'não'],
+  [/\bVoce\b/gi, 'Você'],
+  [/\bOla\b/gi, 'Olá'],
+  [/\bMusica\b/gi, 'Música'],
+  [/\bmusica\b/gi, 'música'],
+  [/\bduracao\b/gi, 'duração'],
+  [/\bViolao\b/gi, 'Violão'],
+  [/\bResponsavel\b/gi, 'Responsável'],
+];
+
+export function prettifyChurchText(value?: string | null) {
+  if (!value) {
+    return '';
+  }
+
+  return churchWordReplacements.reduce(
+    (current, [pattern, replacement]) => current.replace(pattern, replacement),
+    value,
+  );
+}

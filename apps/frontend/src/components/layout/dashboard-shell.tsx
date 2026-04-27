@@ -8,6 +8,7 @@ import { ChatPanel } from '@/components/chat/chat-panel';
 import { FellowshipPanel } from '@/components/fellowship/fellowship-panel';
 import { MemberDirectoryPanel } from '@/components/members/member-directory-panel';
 import { NoticesPanel } from '@/components/notices/notices-panel';
+import { SettingsPanel } from '@/components/settings/settings-panel';
 import { RepertoirePanel } from '@/components/songs/repertoire-panel';
 import { Sidebar } from '@/components/layout/sidebar';
 import { ScheduleEditorPanel } from '@/components/schedules/schedule-editor-panel';
@@ -77,6 +78,10 @@ export function DashboardShell() {
           ) : activeSection === 'fellowship' ? (
             <div className="p-3">
               <FellowshipPanel />
+            </div>
+          ) : activeSection === 'settings' ? (
+            <div className="p-3">
+              <SettingsPanel />
             </div>
           ) : isHydratingApp && !schedule ? (
             <div className="p-6">

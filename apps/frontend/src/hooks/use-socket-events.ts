@@ -82,7 +82,7 @@ export function useSocketEvents() {
           const next = payload.new as { title?: string; body?: string };
           if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
             new Notification(next.title ?? 'Nova notificacao', {
-              body: next.body ?? 'Voce recebeu uma atualizacao no Louvy.',
+              body: next.body ?? 'Você recebeu uma atualização no Louvy.',
             });
           }
           queueRefresh();

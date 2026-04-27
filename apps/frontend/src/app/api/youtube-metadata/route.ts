@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
 
   const videoId = extractYoutubeVideoId(url);
   if (!videoId) {
-    return NextResponse.json({ error: 'Nao consegui identificar o video do YouTube.' }, { status: 400 });
+    return NextResponse.json({ error: 'Não consegui identificar o vídeo do YouTube.' }, { status: 400 });
   }
 
   const watchUrl = `https://www.youtube.com/watch?v=${videoId}`;
@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
 
     if (!oembedResponse.ok) {
       return NextResponse.json(
-        { error: 'Nao consegui buscar os dados principais desse video agora.' },
+        { error: 'Não consegui buscar os dados principais desse vídeo agora.' },
         { status: 400 },
       );
     }
@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(payload);
   } catch {
     return NextResponse.json(
-      { error: 'Nao consegui consultar o YouTube agora. Tente novamente em instantes.' },
+      { error: 'Não consegui consultar o YouTube agora. Tente novamente em instantes.' },
       { status: 500 },
     );
   }

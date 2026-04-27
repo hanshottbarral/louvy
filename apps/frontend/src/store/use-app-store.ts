@@ -453,7 +453,7 @@ export const useAppStore = create<AppState>((set, get) => ({
           authMessage:
             error instanceof Error
               ? error.message
-              : 'Nao consegui carregar suas escalas agora. Tente novamente em instantes.',
+              : 'Não consegui carregar suas escalas agora. Tente novamente em instantes.',
         });
       }
     };
@@ -498,8 +498,8 @@ export const useAppStore = create<AppState>((set, get) => ({
         isHydratingApp: false,
         authMessage:
           error instanceof Error
-            ? error.message
-            : 'Nao consegui atualizar as escalas agora.',
+              ? error.message
+              : 'Não consegui atualizar as escalas agora.',
       });
     }
   },
@@ -532,7 +532,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     } catch (error) {
       set({
         loadingScheduleMessages: false,
-        authMessage: error instanceof Error ? error.message : 'Nao consegui carregar o chat da escala.',
+        authMessage: error instanceof Error ? error.message : 'Não consegui carregar o chat da escala.',
       });
     }
   },
@@ -572,7 +572,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       set({
         isLoadingMembers: false,
         authMessage:
-          error instanceof Error ? error.message : 'Nao consegui carregar a aba de membros agora.',
+          error instanceof Error ? error.message : 'Não consegui carregar a aba de membros agora.',
       });
     }
   },
@@ -598,7 +598,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     } catch (error) {
       set({
         isLoadingMembers: false,
-        authMessage: error instanceof Error ? error.message : 'Nao consegui salvar este membro agora.',
+        authMessage: error instanceof Error ? error.message : 'Não consegui salvar este membro agora.',
       });
     }
   },
@@ -625,7 +625,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       set({
         isLoadingCalendar: false,
         authMessage:
-          error instanceof Error ? error.message : 'Nao consegui carregar o calendario agora.',
+          error instanceof Error ? error.message : 'Não consegui carregar o calendário agora.',
       });
     }
   },
@@ -649,7 +649,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       set({
         isLoadingCalendar: false,
         authMessage:
-          error instanceof Error ? error.message : 'Nao consegui salvar sua indisponibilidade agora.',
+          error instanceof Error ? error.message : 'Não consegui salvar sua indisponibilidade agora.',
       });
     }
   },
@@ -667,7 +667,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       set({
         isLoadingCalendar: false,
         authMessage:
-          error instanceof Error ? error.message : 'Nao consegui remover esta indisponibilidade agora.',
+          error instanceof Error ? error.message : 'Não consegui remover esta indisponibilidade agora.',
       });
     }
   },
@@ -750,7 +750,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (syncedUser.role !== AppRole.ADMIN) {
       set({
         authMessage:
-          'Sua conta ainda nao esta com permissao de admin no Supabase. Aplique o patch member_calendar_patch.sql e confirme seu perfil como admin na aba Membros.',
+          'Sua conta ainda não está com permissão de admin no Supabase. Aplique o patch member_calendar_patch.sql e confirme seu perfil como admin na aba Membros.',
       });
       return undefined;
     }
@@ -870,15 +870,15 @@ export const useAppStore = create<AppState>((set, get) => ({
         await createInAppNotification({
           userId,
           title: 'Nova escala',
-          body: `Voce foi escalado em ${schedule?.title ?? 'uma nova escala'}. Confirme ou recuse no app.`,
+          body: `Você foi escalado em ${schedule?.title ?? 'uma nova escala'}. Confirme ou recuse no app.`,
           type: 'SCHEDULE_ASSIGNED',
         });
 
         if (profile.email) {
           await sendNotificationEmail({
             to: profile.email,
-            subject: 'Voce foi escalado no Louvy',
-            html: `<p>Ola, ${profile.name}.</p><p>Voce foi escalado em <strong>${schedule?.title ?? 'uma nova escala'}</strong>. Entre no app para confirmar ou recusar.</p>`,
+            subject: 'Você foi escalado no Louvy',
+            html: `<p>Olá, ${profile.name}.</p><p>Você foi escalado em <strong>${schedule?.title ?? 'uma nova escala'}</strong>. Entre no app para confirmar ou recusar.</p>`,
           });
         }
       } catch {
@@ -968,7 +968,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     await get().refreshData();
     set({
       authMessage:
-        status === MemberStatus.CONFIRMED ? 'Presenca confirmada.' : 'Recusa registrada e lideranca notificada.',
+        status === MemberStatus.CONFIRMED ? 'Presença confirmada.' : 'Recusa registrada e liderança notificada.',
     });
   },
   saveRepertoireSong: async (payload) => {
@@ -978,7 +978,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
 
     if (!payload.name.trim() || !payload.key.trim() || !payload.category.trim()) {
-      set({ authMessage: 'Preencha nome, tom e categoria da musica.' });
+      set({ authMessage: 'Preencha nome, tom e categoria da música.' });
       return undefined;
     }
 
@@ -989,12 +989,12 @@ export const useAppStore = create<AppState>((set, get) => ({
         activeSection: 'repertoire',
         isCreatingRepertoireSong: false,
         authMessage: result.usedLegacyFallback
-          ? 'Musica salva. Para persistir artista e duracao no banco, aplique o patch SQL novo do repertorio.'
+          ? 'Música salva. Para persistir artista e duração no banco, aplique o patch SQL novo do repertório.'
           : undefined,
       });
       return result.id;
     } catch (error) {
-      set({ authMessage: error instanceof Error ? error.message : 'Nao consegui salvar esta musica.' });
+      set({ authMessage: error instanceof Error ? error.message : 'Não consegui salvar esta música.' });
       return undefined;
     }
   },
@@ -1048,7 +1048,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     if (!error) {
       await get().refreshData();
-      set({ activeSection: 'schedules', selectedScheduleId: scheduleId });
+      set({ selectedScheduleId: scheduleId, authMessage: 'Música adicionada à escala.' });
       return;
     }
 

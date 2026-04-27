@@ -40,7 +40,7 @@ export const mockSchedules: ScheduleView[] = [
     messages: [
       {
         id: 'message-1',
-        content: 'Pessoal, vamos manter a introducao enxuta na segunda musica.',
+        content: 'Pessoal, vamos manter a introdução enxuta na segunda música.',
         type: MessageType.TEXT,
         createdAt: '2026-04-25T12:00:00.000Z',
         user: { id: 'user-admin', name: 'Ana Clara' },
@@ -74,7 +74,7 @@ export const mockNotifications: NotificationView[] = [
   {
     id: 'notification-1',
     title: 'Nova escala',
-    body: 'Voce foi adicionado ao Culto de Domingo.',
+    body: 'Você foi adicionado ao Culto de Domingo.',
     createdAt: '2026-04-25T12:10:00.000Z',
     readAt: null,
   },
@@ -123,7 +123,7 @@ export const mockRepertoire: MinistrySongView[] = [
     position: 3,
     category: 'Adoracao',
     lastPlayed: '2026-03-30',
-    tags: ['adoracao', 'forte'],
+    tags: ['adoração', 'forte'],
   },
   {
     id: 'lib-5',

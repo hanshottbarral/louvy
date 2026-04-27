@@ -12,7 +12,9 @@ import {
   UserCircle2,
   Users2,
 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { ScheduleEventType } from '@louvy/shared';
+import { loadUserPreferences, USER_PREFERENCES_EVENT, UserPreferences } from '@/lib/user-preferences';
 import { formatScheduleDate, getWeekdayLabel } from '@/lib/utils';
 import { useAppStore } from '@/store/use-app-store';
 import { cn } from '@/lib/utils';
@@ -27,6 +29,28 @@ export function Sidebar() {
   const openRepertoireComposer = useAppStore((state) => state.openRepertoireComposer);
   const signOut = useAppStore((state) => state.signOut);
   const currentUser = useAppStore((state) => state.currentUser);
+  const [preferences, setPreferences] = useState<UserPreferences | null>(null);
+
+  useEffect(() => {
+    if (!currentUser) {
+      return;
+    }
+
+    const sync = () => setPreferences(loadUserPreferences(currentUser.id));
+    sync();
+
+    const onPreferences = (event: Event) => {
+      const detail = (event as CustomEvent<{ userId: string; preferences: UserPreferences }>).detail;
+      if (detail?.userId === currentUser.id) {
+        setPreferences(detail.preferences);
+      }
+    };
+
+    window.addEventListener(USER_PREFERENCES_EVENT, onPreferences);
+    return () => {
+      window.removeEventListener(USER_PREFERENCES_EVENT, onPreferences);
+    };
+  }, [currentUser]);
 
   const quickCreateSchedule = () => {
     const today = new Date().toISOString().slice(0, 10);
@@ -122,6 +146,15 @@ export function Sidebar() {
         >
           <MessageCircleHeart size={16} /> Comunhão
         </button>
+        <button
+          onClick={() => setActiveSection('settings')}
+          className={cn(
+            'flex items-center justify-center gap-2 rounded-2xl px-3 py-3 text-sm',
+            activeSection === 'settings' ? 'bg-white text-[var(--foreground)]' : 'bg-white/5',
+          )}
+        >
+          <UserCircle2 size={16} /> Configurações
+        </button>
       </div>
 
       <div className="space-y-2">
@@ -160,10 +193,22 @@ export function Sidebar() {
 
       <div className="mt-auto rounded-2xl border border-white/10 bg-white/6 p-3">
         <div className="flex items-center gap-3">
-          <UserCircle2 size={34} />
+          {preferences?.avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={preferences.avatarUrl}
+              alt={preferences.displayName ?? currentUser?.name ?? 'Perfil'}
+              className="h-[34px] w-[34px] rounded-full object-cover"
+            />
+          ) : (
+            <UserCircle2 size={34} />
+          )}
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold">{currentUser?.name}</p>
+            <p className="truncate text-sm font-semibold">{preferences?.displayName ?? currentUser?.name}</p>
             <p className="truncate text-xs text-white/60">{currentUser?.email}</p>
+            {preferences?.currentMinistry ? (
+              <p className="truncate text-[11px] text-white/55">{preferences.currentMinistry}</p>
+            ) : null}
           </div>
         </div>
         <button

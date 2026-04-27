@@ -13,7 +13,8 @@ export type AppSection =
   | 'repertoire'
   | 'members'
   | 'calendar'
-  | 'fellowship';
+  | 'fellowship'
+  | 'settings';
 export type AuthMode = 'login' | 'register';
 
 export type MinistryAssignment =
