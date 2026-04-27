@@ -47,6 +47,7 @@ export interface ScheduleMemberView {
   userName: string;
   role: InstrumentRole;
   status: MemberStatus;
+  vocalRange?: VocalRange | null;
   declineReason?: string | null;
   canManageSetlist?: boolean;
 }

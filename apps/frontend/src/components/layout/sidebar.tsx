@@ -206,9 +206,6 @@ export function Sidebar() {
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold">{preferences?.displayName ?? currentUser?.name}</p>
             <p className="truncate text-xs text-white/60">{currentUser?.email}</p>
-            {preferences?.currentMinistry ? (
-              <p className="truncate text-[11px] text-white/55">{preferences.currentMinistry}</p>
-            ) : null}
           </div>
         </div>
         <button

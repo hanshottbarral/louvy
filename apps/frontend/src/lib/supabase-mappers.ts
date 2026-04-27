@@ -4,7 +4,7 @@ import {
   MessageType,
   ScheduleEventType,
 } from '@louvy/shared';
-import { MinistrySongView, NotificationView, ScheduleView } from '@/types';
+import { MinistrySongView, NotificationView, ScheduleView, VocalRange } from '@/types';
 
 interface ProfileRow {
   id: string;
@@ -29,6 +29,7 @@ interface ScheduleMemberRow {
   user_id: string;
   role: keyof typeof InstrumentRole;
   status: keyof typeof MemberStatus;
+  vocal_range?: VocalRange | null;
   decline_reason?: string | null;
   can_manage_setlist?: boolean | null;
 }
@@ -82,6 +83,7 @@ export function mapSchedules(args: {
         userName: profileMap.get(member.user_id)?.name ?? 'Membro',
         role: InstrumentRole[member.role],
         status: MemberStatus[member.status],
+        vocalRange: member.vocal_range ?? null,
         declineReason: member.decline_reason ?? null,
         canManageSetlist: member.can_manage_setlist ?? false,
       }));

@@ -27,6 +27,7 @@ import {
   ScheduleEditorInput,
   ScheduleView,
   SessionUser,
+  VocalRange,
 } from '@/types';
 
 interface AppState {
@@ -75,6 +76,7 @@ interface AppState {
     userId: string;
     role: InstrumentRole;
     status: MemberStatus;
+    vocalRange?: VocalRange | null;
     canManageSetlist?: boolean;
   }) => Promise<void>;
   removeMemberFromSchedule: (scheduleMemberId: string) => Promise<void>;
@@ -188,7 +190,7 @@ async function fetchDataForUser(currentUser: SessionUser) {
   }
 
   const scheduleMembersSelect =
-    'id, schedule_id, user_id, role, status, decline_reason, can_manage_setlist';
+    'id, schedule_id, user_id, role, status, vocal_range, decline_reason, can_manage_setlist';
 
   const fetchScheduleMembers = async () => {
     if (scheduleIds.length === 0) {
@@ -806,7 +808,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     await get().refreshData();
     set({ authMessage: 'Escala removida.' });
   },
-  addMemberToSchedule: async ({ scheduleId, userId, role, status, canManageSetlist }) => {
+  addMemberToSchedule: async ({ scheduleId, userId, role, status, vocalRange, canManageSetlist }) => {
     const currentUser = get().currentUser;
     if (!currentUser) {
       return;
@@ -842,6 +844,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       user_id: userId,
       role,
       status,
+      vocal_range: vocalRange ?? null,
       decline_reason: null,
       can_manage_setlist: canManageSetlist ?? false,
     };
@@ -853,6 +856,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         user_id: userId,
         role,
         status,
+        vocal_range: vocalRange ?? null,
         decline_reason: null,
       });
       error = legacyResult.error;

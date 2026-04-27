@@ -4,8 +4,6 @@ export type LouvyTheme = 'vinho' | 'grafite' | 'oceano' | 'floresta' | 'areia';
 
 export interface UserPreferences {
   theme: LouvyTheme;
-  ministries: string[];
-  currentMinistry: string;
   displayName?: string;
   avatarUrl?: string;
 }
@@ -33,8 +31,6 @@ export function loadUserPreferences(userId: string): UserPreferences {
   if (typeof window === 'undefined') {
     return {
       theme: 'vinho',
-      ministries: ['Ministério principal'],
-      currentMinistry: 'Ministério principal',
     };
   }
 
@@ -43,24 +39,18 @@ export function loadUserPreferences(userId: string): UserPreferences {
     if (!raw) {
       return {
         theme: 'vinho',
-        ministries: ['Ministério principal'],
-        currentMinistry: 'Ministério principal',
       };
     }
 
     const parsed = JSON.parse(raw) as Partial<UserPreferences>;
     return {
       theme: parsed.theme ?? 'vinho',
-      ministries: parsed.ministries?.length ? parsed.ministries : ['Ministério principal'],
-      currentMinistry: parsed.currentMinistry ?? parsed.ministries?.[0] ?? 'Ministério principal',
       displayName: parsed.displayName,
       avatarUrl: parsed.avatarUrl,
     };
   } catch {
     return {
       theme: 'vinho',
-      ministries: ['Ministério principal'],
-      currentMinistry: 'Ministério principal',
     };
   }
 }

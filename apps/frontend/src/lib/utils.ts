@@ -8,16 +8,46 @@ export function youtubeEmbedUrl(url?: string | null) {
   }
 
   try {
-    const parsed = new URL(url);
-    const videoId =
-      parsed.hostname.includes('youtu.be')
-        ? parsed.pathname.replace('/', '')
-        : parsed.searchParams.get('v');
+    const videoId = extractYoutubeVideoId(url);
 
     return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
   } catch {
     return null;
   }
+}
+
+export function extractYoutubeVideoId(url?: string | null) {
+  if (!url) {
+    return null;
+  }
+
+  try {
+    const parsed = new URL(url);
+    const shortsMatch = parsed.pathname.match(/^\/shorts\/([^/?]+)/);
+    if (shortsMatch?.[1]) {
+      return shortsMatch[1];
+    }
+
+    if (parsed.hostname.includes('youtu.be')) {
+      return parsed.pathname.replace('/', '') || null;
+    }
+
+    return parsed.searchParams.get('v');
+  } catch {
+    return null;
+  }
+}
+
+export function youtubePlaylistUrl(urls: Array<string | null | undefined>) {
+  const videoIds = urls
+    .map((url) => extractYoutubeVideoId(url))
+    .filter((value, index, array): value is string => Boolean(value) && array.indexOf(value) === index);
+
+  if (!videoIds.length) {
+    return null;
+  }
+
+  return `https://www.youtube.com/watch_videos?video_ids=${encodeURIComponent(videoIds.join(','))}`;
 }
 
 export function getWeekdayLabel(date: string) {

@@ -2,6 +2,7 @@
 
 import { AppRole } from '@louvy/shared';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { MinistryBadge } from '@/components/shared/ministry-badge';
 import { Search, ShieldCheck, UserCog2, Users2 } from 'lucide-react';
 import {
   ministryAssignmentLabel,
@@ -180,13 +181,12 @@ export function MemberDirectoryPanel() {
 
               <div className="mt-3 flex flex-wrap gap-2">
                 {member.assignments.length ? (
-                  member.assignments.slice(0, 3).map((assignment) => (
-                    <span
+                  member.assignments.map((assignment) => (
+                    <MinistryBadge
                       key={`${member.userId}-${assignment}`}
-                      className="rounded-full bg-[var(--surface-strong)] px-3 py-1 text-xs"
-                    >
-                      {ministryAssignmentLabel[assignment]}
-                    </span>
+                      role={assignment}
+                      vocalRange={assignment === 'VOCAL' ? member.vocalRanges[0] ?? null : null}
+                    />
                   ))
                 ) : (
                   <span className="text-xs text-[var(--muted)]">Sem funções definidas ainda.</span>
@@ -221,7 +221,7 @@ export function MemberDirectoryPanel() {
 
             {!canEdit ? (
               <div className="rounded-2xl bg-[var(--surface-strong)] px-4 py-3 text-sm text-[var(--muted)]">
-                Você consegue consultar as funções de todo mundo aqui, mas apenas administradores editam cargos e ministérios.
+                Você consegue consultar as funções de todo mundo aqui, mas apenas administradores editam cargos e funções.
               </div>
             ) : null}
 
@@ -302,7 +302,14 @@ export function MemberDirectoryPanel() {
                       !canEdit && 'opacity-70',
                     )}
                   >
-                    {ministryAssignmentLabel[assignment]}
+                    <span className="inline-flex items-center gap-2">
+                      <MinistryBadge
+                        role={assignment}
+                        vocalRange={assignment === 'VOCAL' ? vocalRanges[0] ?? null : null}
+                        showLabel={false}
+                      />
+                      <span>{ministryAssignmentLabel[assignment]}</span>
+                    </span>
                   </button>
                 ))}
               </div>

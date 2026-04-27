@@ -1,17 +1,17 @@
 'use client';
 
 import { AppRole } from '@louvy/shared';
-import { PlayCircle, Save } from 'lucide-react';
+import { Save, Youtube } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useAppStore } from '@/store/use-app-store';
 import { ScheduleView } from '@/types';
-import { youtubeEmbedUrl } from '@/lib/utils';
+import { youtubePlaylistUrl } from '@/lib/utils';
 
 export function SetlistPanel({ schedule }: { schedule: ScheduleView }) {
   const currentUser = useAppStore((state) => state.currentUser);
   const authMessage = useAppStore((state) => state.authMessage);
   const updateScheduleSongArrangement = useAppStore((state) => state.updateScheduleSongArrangement);
-  const embedUrl = youtubeEmbedUrl(schedule.songs[0]?.youtubeUrl);
+  const playlistUrl = youtubePlaylistUrl(schedule.songs.map((song) => song.youtubeUrl));
   const currentScheduleMember = schedule.members.find((member) => member.userId === currentUser?.id);
   const canManageSongs =
     currentUser?.role === AppRole.ADMIN || Boolean(currentScheduleMember?.canManageSetlist);
@@ -23,22 +23,22 @@ export function SetlistPanel({ schedule }: { schedule: ScheduleView }) {
           <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Setlist</p>
           <h3 className="text-xl">Músicas da escala</h3>
         </div>
-        <span className="rounded-full bg-[var(--surface-strong)] px-3 py-1 text-sm">
-          {schedule.songs.length} música{schedule.songs.length === 1 ? '' : 's'}
-        </span>
-      </div>
-
-      {embedUrl ? (
-        <div className="mb-4 overflow-hidden rounded-2xl border border-[var(--line)]">
-          <iframe
-            title="Prévia do YouTube"
-            src={embedUrl}
-            className="aspect-video w-full"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          />
+        <div className="flex items-center gap-2">
+          {playlistUrl ? (
+            <button
+              type="button"
+              onClick={() => window.open(playlistUrl, '_blank', 'noopener,noreferrer')}
+              className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-sm text-white"
+            >
+              <Youtube size={16} />
+              YouTube
+            </button>
+          ) : null}
+          <span className="rounded-full bg-[var(--surface-strong)] px-3 py-1 text-sm">
+            {schedule.songs.length} música{schedule.songs.length === 1 ? '' : 's'}
+          </span>
         </div>
-      ) : null}
+      </div>
 
       {authMessage ? (
         <p className="mb-4 rounded-2xl bg-[rgba(122,31,62,0.1)] px-4 py-3 text-sm text-[var(--accent-strong)]">
@@ -100,22 +100,17 @@ function SetlistSongCard({
           {index + 1}
         </div>
         <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="truncate font-semibold">{song.name}</p>
-              <p className="mt-1 text-sm text-[var(--muted)]">
-                Tom desta escala: {song.key}
-                {song.leadSingerName ? ` • Solista: ${song.leadSingerName}` : ''}
-                {song.bpm ? ` • ${song.bpm} BPM` : ''}
-              </p>
-            </div>
-            <button className="rounded-full bg-[var(--accent)] p-2 text-white" title="Abrir prévia">
-              <PlayCircle size={18} />
-            </button>
+          <div className="min-w-0">
+            <p className="truncate font-semibold">{song.name}</p>
+            <p className="mt-1 text-sm text-[var(--muted)]">
+              Tom desta escala: {song.key}
+              {song.leadSingerName ? ` • Solista: ${song.leadSingerName}` : ''}
+              {song.bpm ? ` • ${song.bpm} BPM` : ''}
+            </p>
           </div>
 
           {canManageSongs ? (
-            <div className="mt-3 grid gap-2 lg:grid-cols-[76px_minmax(0,1fr)_auto]">
+            <div className="mt-3 grid gap-2 lg:grid-cols-[72px_minmax(0,1fr)_auto]">
               <input
                 value={keyValue}
                 onChange={(event) => setKeyValue(event.target.value.slice(0, 4))}
