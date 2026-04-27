@@ -225,13 +225,13 @@ export function MemberDirectoryPanel() {
               </div>
             ) : null}
 
-            <div className="grid gap-3 lg:grid-cols-2">
+            <div className="grid gap-3 lg:grid-cols-[1.1fr_1.4fr]">
               <div className="rounded-3xl border border-[var(--line)] p-4">
                 <div className="flex items-center gap-2">
                   <ShieldCheck size={18} />
                   <h4 className="text-lg">Permissão no app</h4>
                 </div>
-                <div className="mt-4 grid grid-cols-2 gap-2">
+                <div className="mt-3 grid grid-cols-2 gap-2">
                   {[AppRole.ADMIN, AppRole.MUSICIAN].map((roleOption) => (
                     <button
                       key={roleOption}
@@ -239,7 +239,7 @@ export function MemberDirectoryPanel() {
                       disabled={!canEdit}
                       onClick={() => setAppRole(roleOption)}
                       className={cn(
-                        'rounded-2xl border px-4 py-3 text-sm transition',
+                        'rounded-2xl border px-3 py-2.5 text-sm transition',
                         appRole === roleOption
                           ? 'border-[var(--foreground)] bg-[var(--foreground)] text-white'
                           : 'border-[var(--line)] bg-[var(--surface-strong)]',
@@ -257,23 +257,28 @@ export function MemberDirectoryPanel() {
                   <UserCog2 size={18} />
                   <h4 className="text-lg">Anotações</h4>
                 </div>
-                <label className="mt-4 block">
-                  <span className="mb-2 block text-sm text-[var(--muted)]">Aniversário</span>
-                  <input
-                    type="date"
-                    value={birthday}
-                    onChange={(event) => setBirthday(event.target.value)}
-                    disabled={!canEdit}
-                    className="w-full rounded-2xl border border-[var(--line)] bg-[var(--surface-strong)] px-4 py-3 outline-none disabled:opacity-70"
-                  />
-                </label>
-                <textarea
-                  value={notes}
-                  onChange={(event) => setNotes(event.target.value)}
-                  disabled={!canEdit}
-                  placeholder="Pontos fortes, observações de timbre, facilidade com arranjos, liderança, etc."
-                  className="mt-4 min-h-[132px] w-full rounded-2xl border border-[var(--line)] bg-[var(--surface-strong)] px-4 py-3 outline-none disabled:opacity-70"
-                />
+                <div className="mt-3 grid gap-3 lg:grid-cols-[190px_minmax(0,1fr)]">
+                  <label className="block">
+                    <span className="mb-2 block text-sm text-[var(--muted)]">Aniversário</span>
+                    <input
+                      type="date"
+                      value={birthday}
+                      onChange={(event) => setBirthday(event.target.value)}
+                      disabled={!canEdit}
+                      className="w-full rounded-2xl border border-[var(--line)] bg-[var(--surface-strong)] px-3 py-2.5 outline-none disabled:opacity-70"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="mb-2 block text-sm text-[var(--muted)]">Observações</span>
+                    <textarea
+                      value={notes}
+                      onChange={(event) => setNotes(event.target.value)}
+                      disabled={!canEdit}
+                      placeholder="Timbre, arranjo, liderança, repertório..."
+                      className="min-h-[96px] w-full rounded-2xl border border-[var(--line)] bg-[var(--surface-strong)] px-4 py-3 outline-none disabled:opacity-70"
+                    />
+                  </label>
+                </div>
               </div>
             </div>
 

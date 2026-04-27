@@ -50,7 +50,7 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="flex min-h-[240px] flex-col rounded-[28px] bg-[var(--sidebar)] p-4 text-[var(--sidebar-foreground)]">
+    <aside className="flex min-h-[240px] flex-col rounded-[28px] bg-[var(--sidebar)] p-4 text-[var(--sidebar-foreground)] lg:sticky lg:top-3 lg:h-[calc(100vh-1.5rem)] lg:overflow-y-auto">
       <div className="mb-5 flex items-center justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.18em] text-white/55">Louvy</p>

@@ -16,8 +16,8 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, PlayCircle, PlusCircle, Trash2 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { GripVertical, PlayCircle, PlusCircle, Save, Trash2 } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAppStore } from '@/store/use-app-store';
 import { ScheduleView } from '@/types';
 import { youtubeEmbedUrl } from '@/lib/utils';
@@ -172,6 +172,14 @@ function SortableSongCard({
   const [keyValue, setKeyValue] = useState(tone);
   const [leadSinger, setLeadSinger] = useState(leadSingerUserId ?? '');
 
+  useEffect(() => {
+    setKeyValue(tone);
+  }, [tone]);
+
+  useEffect(() => {
+    setLeadSinger(leadSingerUserId ?? '');
+  }, [leadSingerUserId]);
+
   return (
     <div
       ref={setNodeRef}
@@ -179,7 +187,7 @@ function SortableSongCard({
         transform: CSS.Transform.toString(transform),
         transition,
       }}
-      className="flex items-center gap-3 rounded-2xl border border-[var(--line)] bg-[var(--surface-strong)] p-3"
+      className="grid gap-3 rounded-2xl border border-[var(--line)] bg-[var(--surface-strong)] p-3 md:grid-cols-[auto_minmax(0,1fr)_auto]"
     >
       <button className="rounded-xl border border-[var(--line)] p-2" {...attributes} {...listeners}>
         <GripVertical size={16} />
@@ -187,59 +195,74 @@ function SortableSongCard({
       <div className="flex-1">
         <p className="font-semibold">{name}</p>
         {canManageSongs ? (
-          <div className="mt-2 grid gap-2 md:grid-cols-[120px_minmax(0,1fr)_auto]">
-            <input
-              value={keyValue}
-              onChange={(event) => setKeyValue(event.target.value)}
-              className="rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-sm outline-none"
-              placeholder="Tom"
-            />
-            <select
-              value={leadSinger}
-              onChange={(event) => setLeadSinger(event.target.value)}
-              className="rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-sm outline-none"
-            >
-              <option value="">Definir quem canta</option>
-              {singerOptions
-                .filter((member) => member.role === 'VOCAL')
-                .map((member) => (
-                  <option key={`${scheduleId}-${member.userId}-${member.id}`} value={member.userId}>
-                    {member.userName}
-                  </option>
-                ))}
-            </select>
-            <button
-              type="button"
-              onClick={() => onSave(id, keyValue, leadSinger || null)}
-              className="rounded-xl bg-[var(--foreground)] px-3 py-2 text-sm text-white"
-            >
-              Salvar
-            </button>
+          <div className="mt-2 grid gap-2 lg:grid-cols-[88px_minmax(0,1fr)]">
+            <label className="block">
+              <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-[var(--muted)]">
+                Tom desta escala
+              </span>
+              <input
+                value={keyValue}
+                onChange={(event) => setKeyValue(event.target.value.slice(0, 4))}
+                maxLength={4}
+                className="w-full rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-sm outline-none"
+                placeholder="Am"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-[var(--muted)]">
+                Quem canta
+              </span>
+              <select
+                value={leadSinger}
+                onChange={(event) => setLeadSinger(event.target.value)}
+                className="w-full rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-sm outline-none"
+              >
+                <option value="">Definir quem canta</option>
+                {singerOptions
+                  .filter((member) => member.role === 'VOCAL')
+                  .map((member) => (
+                    <option key={`${scheduleId}-${member.userId}-${member.id}`} value={member.userId}>
+                      {member.userName}
+                    </option>
+                  ))}
+              </select>
+            </label>
           </div>
         ) : (
           <p className="text-sm text-[var(--muted)]">
-            Tom {tone}
+            Tom desta escala: {tone}
             {leadSingerName ? ` • Voz principal: ${leadSingerName}` : ''}
             {bpm ? ` • ${bpm} BPM` : ''}
           </p>
         )}
         {canManageSongs ? (
           <p className="mt-2 text-sm text-[var(--muted)]">
-            Tom atual da escala: {tone}
+            Tom desta escala: {tone}
             {leadSingerName ? ` • Voz principal atual: ${leadSingerName}` : ''}
             {bpm ? ` • ${bpm} BPM` : ''}
           </p>
         ) : null}
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-end gap-2 self-start">
         <button className="rounded-full bg-[var(--accent)] p-2 text-white">
           <PlayCircle size={18} />
         </button>
         {canManageSongs ? (
           <button
             type="button"
+            onClick={() => onSave(id, keyValue, leadSinger || null)}
+            className="rounded-full border border-[var(--line)] bg-white p-2 text-[var(--foreground)]"
+            title="Salvar ajustes desta música"
+          >
+            <Save size={16} />
+          </button>
+        ) : null}
+        {canManageSongs ? (
+          <button
+            type="button"
             onClick={() => onRemove(id)}
             className="rounded-full border border-[var(--line)] p-2 text-[var(--danger)]"
+            title="Remover música da escala"
           >
             <Trash2 size={16} />
           </button>

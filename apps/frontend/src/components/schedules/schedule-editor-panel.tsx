@@ -1,7 +1,7 @@
 'use client';
 
 import { AppRole, ScheduleEventType } from '@louvy/shared';
-import { CalendarDays, CalendarRange, Save, Trash2 } from 'lucide-react';
+import { CalendarDays, CalendarRange } from 'lucide-react';
 import { FormEvent, useEffect, useState } from 'react';
 import { getMonthDayLabel, getWeekdayLabel } from '@/lib/utils';
 import { useAppStore } from '@/store/use-app-store';
@@ -9,7 +9,6 @@ import { ScheduleView } from '@/types';
 
 export function ScheduleEditorPanel({ schedule }: { schedule: ScheduleView }) {
   const saveSchedule = useAppStore((state) => state.saveSchedule);
-  const deleteSchedule = useAppStore((state) => state.deleteSchedule);
   const currentUser = useAppStore((state) => state.currentUser);
   const authMessage = useAppStore((state) => state.authMessage);
   const [title, setTitle] = useState(schedule.title);
@@ -152,7 +151,7 @@ export function ScheduleEditorPanel({ schedule }: { schedule: ScheduleView }) {
         </div>
       ) : null}
 
-      <form className="space-y-4" onSubmit={handleSubmit}>
+      <form id={`schedule-editor-form-${schedule.id}`} className="space-y-4" onSubmit={handleSubmit}>
         <label className="block">
           <span className="mb-2 block text-sm text-[var(--muted)]">Título da escala</span>
           <input
@@ -219,24 +218,6 @@ export function ScheduleEditorPanel({ schedule }: { schedule: ScheduleView }) {
             {authMessage}
           </div>
         ) : null}
-
-        <div className="grid gap-3 md:grid-cols-2">
-          <button
-            type="submit"
-            disabled={!canManageSchedules}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] px-4 py-3 text-white disabled:opacity-60"
-          >
-            <Save size={16} /> Salvar agora
-          </button>
-          <button
-            type="button"
-            disabled={!canManageSchedules}
-            onClick={() => void deleteSchedule(schedule.id)}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-[var(--line)] px-4 py-3 text-[var(--danger)] disabled:opacity-60"
-          >
-            <Trash2 size={16} /> Excluir escala
-          </button>
-        </div>
       </form>
     </section>
   );
