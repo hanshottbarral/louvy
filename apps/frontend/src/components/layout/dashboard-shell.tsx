@@ -85,7 +85,7 @@ export function DashboardShell() {
                 Assim que a primeira escala existir, ela aparece aqui com equipe, repertorio e chat.
               </p>
               {authMessage ? (
-                <p className="mt-4 rounded-2xl bg-[rgba(31,122,92,0.1)] px-4 py-3 text-sm text-[var(--accent-strong)]">
+                <p className="mt-4 rounded-2xl bg-[rgba(122,31,62,0.1)] px-4 py-3 text-sm text-[var(--accent-strong)]">
                   {authMessage}
                 </p>
               ) : null}

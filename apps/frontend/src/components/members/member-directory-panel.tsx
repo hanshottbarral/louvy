@@ -167,7 +167,7 @@ export function MemberDirectoryPanel() {
                   className={cn(
                     'rounded-full px-2 py-1 text-xs',
                     member.appRole === AppRole.ADMIN
-                      ? 'bg-[rgba(31,122,92,0.12)] text-[var(--accent-strong)]'
+                      ? 'bg-[rgba(122,31,62,0.12)] text-[var(--accent-strong)]'
                       : 'bg-[var(--surface-strong)] text-[var(--muted)]',
                   )}
                 >
@@ -316,7 +316,7 @@ export function MemberDirectoryPanel() {
             ) : null}
 
             {authMessage ? (
-              <div className="rounded-2xl bg-[rgba(31,122,92,0.1)] px-4 py-3 text-sm text-[var(--accent-strong)]">
+              <div className="rounded-2xl bg-[rgba(122,31,62,0.1)] px-4 py-3 text-sm text-[var(--accent-strong)]">
                 {authMessage}
               </div>
             ) : null}

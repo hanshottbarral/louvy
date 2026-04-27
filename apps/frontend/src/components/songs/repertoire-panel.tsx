@@ -252,12 +252,12 @@ export function RepertoirePanel() {
                     className="rounded-2xl border border-[var(--line)] bg-white px-4 py-3 outline-none md:col-span-2"
                   />
                   {autofillMessage ? (
-                    <p className="md:col-span-2 rounded-2xl bg-[rgba(31,122,92,0.1)] px-4 py-3 text-sm text-[var(--accent-strong)]">
+                    <p className="md:col-span-2 rounded-2xl bg-[rgba(122,31,62,0.1)] px-4 py-3 text-sm text-[var(--accent-strong)]">
                       {autofillMessage}
                     </p>
                   ) : null}
                   {authMessage ? (
-                    <p className="md:col-span-2 rounded-2xl bg-[rgba(31,122,92,0.1)] px-4 py-3 text-sm text-[var(--accent-strong)]">
+                    <p className="md:col-span-2 rounded-2xl bg-[rgba(122,31,62,0.1)] px-4 py-3 text-sm text-[var(--accent-strong)]">
                       {authMessage}
                     </p>
                   ) : null}
@@ -299,7 +299,7 @@ export function RepertoirePanel() {
                   {song.tags.map((tag) => (
                     <span
                       key={tag}
-                      className="rounded-full bg-[rgba(31,122,92,0.1)] px-3 py-1 text-xs text-[var(--accent-strong)]"
+                      className="rounded-full bg-[rgba(122,31,62,0.1)] px-3 py-1 text-xs text-[var(--accent-strong)]"
                     >
                       {tag}
                     </span>

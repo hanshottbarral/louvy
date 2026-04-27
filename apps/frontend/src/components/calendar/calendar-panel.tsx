@@ -189,7 +189,7 @@ export function CalendarPanel() {
             </div>
 
             {authMessage ? (
-              <div className="rounded-2xl bg-[rgba(31,122,92,0.1)] px-4 py-3 text-sm text-[var(--accent-strong)]">
+              <div className="rounded-2xl bg-[rgba(122,31,62,0.1)] px-4 py-3 text-sm text-[var(--accent-strong)]">
                 {authMessage}
               </div>
             ) : null}
