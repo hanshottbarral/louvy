@@ -67,11 +67,15 @@ async function fetchText(url: string, extraHeaders?: Record<string, string>) {
 }
 
 async function searchDuckDuckGo(query: string) {
-  const html = await fetchText(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`);
-  const urls = [...html.matchAll(/result__a" href="([^"]+)"/g)]
-    .map((match) => decodeDuckDuckGoHref(match[1]))
-    .filter(Boolean);
-  return Array.from(new Set(urls));
+  try {
+    const html = await fetchText(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`);
+    const urls = [...html.matchAll(/result__a" href="([^"]+)"/g)]
+      .map((match) => decodeDuckDuckGoHref(match[1]))
+      .filter(Boolean);
+    return Array.from(new Set(urls));
+  } catch {
+    return [] as string[];
+  }
 }
 
 function parseSongBpmMetrics(html: string) {
@@ -106,6 +110,15 @@ function parseCifraClubKey(html: string) {
 function parseMetaDescription(html: string) {
   const descriptionMatch = html.match(/<meta name="description" content="([^"]+)"/i);
   return descriptionMatch?.[1] ?? '';
+}
+
+function parseWatchTitle(html: string) {
+  const titleMatch = html.match(/<title>(.*?)<\/title>/i);
+  if (!titleMatch?.[1]) {
+    return '';
+  }
+
+  return titleMatch[1].replace(/\s*-\s*YouTube\s*$/i, '').trim();
 }
 
 function mergeTags(...tagArrays: Array<string[] | undefined>) {
@@ -147,19 +160,15 @@ export async function GET(request: NextRequest) {
       }),
     ]);
 
-    if (!oembedResponse.ok) {
-      return NextResponse.json(
-        { error: 'Não consegui buscar os dados principais desse vídeo agora.' },
-        { status: 400 },
-      );
-    }
-
-    const oembed = (await oembedResponse.json()) as { title: string; author_name?: string };
+    const oembed = oembedResponse.ok
+      ? ((await oembedResponse.json()) as { title: string; author_name?: string })
+      : null;
     const watchHtml = watchResponse.ok ? await watchResponse.text() : '';
     const descriptionMatch = watchHtml.match(/"shortDescription":"(.*?)"/);
     const description = decodeYoutubeText(descriptionMatch?.[1]);
-    const inferred = guessTitleAndArtist(oembed.title, oembed.author_name);
-    const combinedText = `${oembed.title}\n${description}`;
+    const rawTitle = oembed?.title || parseWatchTitle(watchHtml) || 'Nova música';
+    const inferred = guessTitleAndArtist(rawTitle, oembed?.author_name);
+    const combinedText = `${rawTitle}\n${description}`;
     const baseTags = suggestTagsFromYoutubeText(combinedText);
 
     const [cifraResults, songBpmResults, multitracksResults] = await Promise.all([
@@ -207,8 +216,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(payload);
   } catch {
     return NextResponse.json(
-      { error: 'Não consegui consultar o YouTube agora. Tente novamente em instantes.' },
-      { status: 500 },
+      {
+        title: 'Nova música',
+        artist: '',
+        durationSeconds: null,
+        key: '',
+        bpm: null,
+        tags: ['Culto'],
+      } satisfies YoutubeMetadata,
     );
   }
 }
