@@ -1,18 +1,11 @@
 'use client';
 
 import { AppRole, ScheduleEventType } from '@louvy/shared';
-import { CalendarDays, CalendarRange, Save, Sparkles, Trash2 } from 'lucide-react';
+import { CalendarDays, CalendarRange, Save, Trash2 } from 'lucide-react';
 import { FormEvent, useEffect, useState } from 'react';
-import { scheduleEventTypeLabel } from '@/lib/labels';
 import { getMonthDayLabel, getWeekdayLabel } from '@/lib/utils';
 import { useAppStore } from '@/store/use-app-store';
 import { ScheduleView } from '@/types';
-
-const eventTypeOptions = [
-  { value: ScheduleEventType.SERVICE, label: scheduleEventTypeLabel.SERVICE },
-  { value: ScheduleEventType.REHEARSAL, label: scheduleEventTypeLabel.REHEARSAL },
-  { value: ScheduleEventType.SPECIAL, label: scheduleEventTypeLabel.SPECIAL },
-];
 
 export function ScheduleEditorPanel({ schedule }: { schedule: ScheduleView }) {
   const saveSchedule = useAppStore((state) => state.saveSchedule);
@@ -22,8 +15,6 @@ export function ScheduleEditorPanel({ schedule }: { schedule: ScheduleView }) {
   const [title, setTitle] = useState(schedule.title);
   const [date, setDate] = useState(schedule.date);
   const [time, setTime] = useState(schedule.time);
-  const [eventType, setEventType] = useState(schedule.eventType);
-  const [eventLabel, setEventLabel] = useState(schedule.eventLabel);
   const [notes, setNotes] = useState(schedule.notes ?? '');
   const [isAutosaving, setIsAutosaving] = useState(false);
   const [lastSavedSignature, setLastSavedSignature] = useState('');
@@ -33,16 +24,12 @@ export function ScheduleEditorPanel({ schedule }: { schedule: ScheduleView }) {
     setTitle(schedule.title);
     setDate(schedule.date);
     setTime(schedule.time);
-    setEventType(schedule.eventType);
-    setEventLabel(schedule.eventLabel);
     setNotes(schedule.notes ?? '');
     setLastSavedSignature(
       JSON.stringify({
         title: schedule.title,
         date: schedule.date,
         time: schedule.time,
-        eventType: schedule.eventType,
-        eventLabel: schedule.eventLabel,
         notes: schedule.notes ?? '',
       }),
     );
@@ -57,8 +44,6 @@ export function ScheduleEditorPanel({ schedule }: { schedule: ScheduleView }) {
       title,
       date,
       time,
-      eventType,
-      eventLabel,
       notes,
     });
 
@@ -73,8 +58,8 @@ export function ScheduleEditorPanel({ schedule }: { schedule: ScheduleView }) {
         title,
         date,
         time,
-        eventType,
-        eventLabel,
+        eventType: ScheduleEventType.SERVICE,
+        eventLabel: title.trim() || 'Escala',
         notes,
       });
 
@@ -91,8 +76,6 @@ export function ScheduleEditorPanel({ schedule }: { schedule: ScheduleView }) {
   }, [
     canManageSchedules,
     date,
-    eventLabel,
-    eventType,
     lastSavedSignature,
     notes,
     saveSchedule,
@@ -109,8 +92,8 @@ export function ScheduleEditorPanel({ schedule }: { schedule: ScheduleView }) {
       title,
       date,
       time,
-      eventType,
-      eventLabel,
+      eventType: ScheduleEventType.SERVICE,
+      eventLabel: title.trim() || 'Escala',
       notes,
     });
     if (savedId) {
@@ -119,8 +102,6 @@ export function ScheduleEditorPanel({ schedule }: { schedule: ScheduleView }) {
           title,
           date,
           time,
-          eventType,
-          eventLabel,
           notes,
         }),
       );
@@ -144,8 +125,6 @@ export function ScheduleEditorPanel({ schedule }: { schedule: ScheduleView }) {
       setTitle('Nova escala');
       setDate(nextDate);
       setTime('19:00');
-      setEventType(ScheduleEventType.SERVICE);
-      setEventLabel('Culto da noite');
       setNotes('Defina equipe, setlist e observacoes.');
     }
   };
@@ -219,32 +198,6 @@ export function ScheduleEditorPanel({ schedule }: { schedule: ScheduleView }) {
           </div>
         </div>
 
-        <div className="grid gap-3 md:grid-cols-2">
-          <label className="block">
-            <span className="mb-2 block text-sm text-[var(--muted)]">Tipo</span>
-            <select
-              value={eventType}
-              onChange={(event) => setEventType(event.target.value as ScheduleEventType)}
-              className="w-full rounded-2xl border border-[var(--line)] bg-[var(--surface-strong)] px-4 py-3 outline-none"
-            >
-              {eventTypeOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="block">
-            <span className="mb-2 block text-sm text-[var(--muted)]">Evento especifico</span>
-            <input
-              value={eventLabel}
-              onChange={(event) => setEventLabel(event.target.value)}
-              placeholder="Culto da manha, culto da noite, ceia..."
-              className="w-full rounded-2xl border border-[var(--line)] bg-[var(--surface-strong)] px-4 py-3 outline-none"
-            />
-          </label>
-        </div>
-
         <label className="block">
           <span className="mb-2 block text-sm text-[var(--muted)]">Observacoes</span>
           <textarea
@@ -255,22 +208,14 @@ export function ScheduleEditorPanel({ schedule }: { schedule: ScheduleView }) {
           />
         </label>
 
-        <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-strong)] p-3 text-sm text-[var(--muted)]">
-          <p className="flex items-center gap-2 font-semibold text-[var(--foreground)]">
-            <Sparkles size={16} /> Resumo rapido
+        {canManageSchedules ? (
+          <p className="text-xs text-[var(--muted)]">
+            {isAutosaving ? 'Salvando alteracoes...' : 'Autosave ativo. Suas alteracoes sao salvas automaticamente.'}
           </p>
-          <p className="mt-2">
-            {title} em {getWeekdayLabel(date)}, {getMonthDayLabel(date)}, as {time}. Evento: {eventLabel}.
-          </p>
-          {canManageSchedules ? (
-            <p className="mt-2 text-xs">
-              {isAutosaving ? 'Salvando alteracoes...' : 'Autosave ativo. Suas alteracoes sao salvas automaticamente.'}
-            </p>
-          ) : null}
-        </div>
+        ) : null}
 
         {authMessage ? (
-          <div className="rounded-2xl bg-[rgba(31,122,92,0.1)] px-4 py-3 text-sm text-[var(--accent-strong)]">
+          <div className="rounded-2xl bg-[rgba(122,31,62,0.1)] px-4 py-3 text-sm text-[var(--accent-strong)]">
             {authMessage}
           </div>
         ) : null}

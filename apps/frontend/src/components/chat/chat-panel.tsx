@@ -50,9 +50,6 @@ export function ChatPanel({ schedule }: { schedule: ScheduleView }) {
         <p className="mt-1 text-sm text-[var(--muted)]">
           {typingUser ? `${typingUser} esta digitando...` : 'Mensagens e audios em tempo real'}
         </p>
-        <p className="mt-1 text-xs text-[var(--muted)]">
-          Se o backend de upload nao estiver ativo, o audio ainda toca localmente nesta sessao.
-        </p>
       </div>
 
       <div className="flex-1 space-y-3 overflow-y-auto rounded-3xl border border-[var(--line)] bg-[var(--surface-strong)] p-3">

@@ -15,6 +15,10 @@ export enum InstrumentRole {
   BASS = 'BASS',
   DRUMS = 'DRUMS',
   KEYS = 'KEYS',
+  VIOLAO = 'VIOLAO',
+  DIRETOR_MUSICAL = 'DIRETOR_MUSICAL',
+  MINISTRO_RESPONSAVEL = 'MINISTRO_RESPONSAVEL',
+  VS = 'VS',
 }
 
 export enum MemberStatus {
@@ -70,4 +74,3 @@ export interface ChatMessageDto {
     name: string;
   };
 }
-

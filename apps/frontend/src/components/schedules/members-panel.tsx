@@ -1,11 +1,12 @@
 import { AppRole, InstrumentRole, MemberStatus } from '@louvy/shared';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { instrumentRoleLabel, memberStatusLabel } from '@/lib/labels';
+import { getAllowedScheduleRoles } from '@/lib/schedule-roles';
 import { useAppStore } from '@/store/use-app-store';
 import { ScheduleView } from '@/types';
 
 const statusClassName: Record<MemberStatus, string> = {
-  CONFIRMED: 'bg-[rgba(31,122,92,0.12)] text-[var(--accent-strong)]',
+  CONFIRMED: 'bg-[rgba(122,31,62,0.12)] text-[var(--accent-strong)]',
   PENDING: 'bg-[rgba(197,107,79,0.12)] text-[var(--danger)]',
   DECLINED: 'bg-[rgba(35,24,17,0.08)] text-[var(--muted)]',
 };
@@ -17,9 +18,11 @@ export function MembersPanel({ schedule }: { schedule: ScheduleView }) {
   const loadMemberDirectory = useAppStore((state) => state.loadMemberDirectory);
   const addMemberToSchedule = useAppStore((state) => state.addMemberToSchedule);
   const removeMemberFromSchedule = useAppStore((state) => state.removeMemberFromSchedule);
+  const respondToScheduleMember = useAppStore((state) => state.respondToScheduleMember);
   const [selectedUserId, setSelectedUserId] = useState('');
   const [role, setRole] = useState<InstrumentRole>(InstrumentRole.VOCAL);
   const [status, setStatus] = useState<MemberStatus>(MemberStatus.PENDING);
+  const [declineReasonByMemberId, setDeclineReasonByMemberId] = useState<Record<string, string>>({});
 
   useEffect(() => {
     void loadMemberDirectory();
@@ -30,6 +33,11 @@ export function MembersPanel({ schedule }: { schedule: ScheduleView }) {
     () => memberDirectory.filter((member) => !schedule.members.some((entry) => entry.userId === member.userId)),
     [memberDirectory, schedule.members],
   );
+  const selectedMemberProfile = availableMembers.find((member) => member.userId === selectedUserId);
+  const allowedRoles = useMemo(
+    () => getAllowedScheduleRoles(selectedMemberProfile),
+    [selectedMemberProfile],
+  );
 
   useEffect(() => {
     if (!selectedUserId && availableMembers.length > 0) {
@@ -37,9 +45,19 @@ export function MembersPanel({ schedule }: { schedule: ScheduleView }) {
     }
   }, [availableMembers, selectedUserId]);
 
+  useEffect(() => {
+    if (allowedRoles.length > 0 && !allowedRoles.includes(role)) {
+      setRole(allowedRoles[0]);
+    }
+  }, [allowedRoles, role]);
+
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     if (!selectedUserId) {
+      return;
+    }
+
+    if (!allowedRoles.includes(role)) {
       return;
     }
 
@@ -89,7 +107,7 @@ export function MembersPanel({ schedule }: { schedule: ScheduleView }) {
                   onChange={(event) => setRole(event.target.value as InstrumentRole)}
                   className="rounded-2xl border border-[var(--line)] bg-white px-4 py-3 outline-none"
                 >
-                  {Object.values(InstrumentRole).map((option) => (
+                  {allowedRoles.map((option) => (
                     <option key={option} value={option}>
                       {instrumentRoleLabel[option]}
                     </option>
@@ -109,13 +127,18 @@ export function MembersPanel({ schedule }: { schedule: ScheduleView }) {
               </div>
               <button
                 type="submit"
-                disabled={!selectedUserId}
+                disabled={!selectedUserId || allowedRoles.length === 0}
                 className="rounded-2xl bg-[var(--foreground)] px-4 py-3 text-sm text-white disabled:opacity-60"
               >
                 Adicionar na escala
               </button>
+              {selectedMemberProfile && allowedRoles.length === 0 ? (
+                <p className="rounded-2xl border border-[var(--line)] bg-white px-4 py-3 text-sm text-[var(--muted)]">
+                  Esse membro ainda nao tem uma funcao de escala compativel cadastrada na aba Membros.
+                </p>
+              ) : null}
               {authMessage ? (
-                <p className="rounded-2xl bg-[rgba(31,122,92,0.1)] px-4 py-3 text-sm text-[var(--accent-strong)]">
+                <p className="rounded-2xl bg-[rgba(122,31,62,0.1)] px-4 py-3 text-sm text-[var(--accent-strong)]">
                   {authMessage}
                 </p>
               ) : null}
@@ -148,6 +171,52 @@ export function MembersPanel({ schedule }: { schedule: ScheduleView }) {
                 ) : null}
               </div>
             </div>
+            {member.declineReason ? (
+              <p className="mt-3 text-sm text-[var(--muted)]">Motivo da recusa: {member.declineReason}</p>
+            ) : null}
+            {currentUser?.id === member.userId ? (
+              <div className="mt-3 space-y-2">
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void respondToScheduleMember({
+                        scheduleMemberId: member.id,
+                        status: MemberStatus.CONFIRMED,
+                      })
+                    }
+                    className="rounded-full bg-[var(--accent)] px-4 py-2 text-sm text-white"
+                  >
+                    Confirmar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void respondToScheduleMember({
+                        scheduleMemberId: member.id,
+                        status: MemberStatus.DECLINED,
+                        declineReason: declineReasonByMemberId[member.id],
+                      })
+                    }
+                    className="rounded-full border border-[var(--line)] px-4 py-2 text-sm text-[var(--danger)]"
+                  >
+                    Recusar
+                  </button>
+                </div>
+                <textarea
+                  value={declineReasonByMemberId[member.id] ?? ''}
+                  onChange={(event) =>
+                    setDeclineReasonByMemberId((current) => ({
+                      ...current,
+                      [member.id]: event.target.value,
+                    }))
+                  }
+                  placeholder="Se precisar recusar, explique o motivo."
+                  rows={2}
+                  className="w-full rounded-2xl border border-[var(--line)] bg-white px-4 py-3 text-sm outline-none"
+                />
+              </div>
+            ) : null}
           </div>
         ))}
       </div>

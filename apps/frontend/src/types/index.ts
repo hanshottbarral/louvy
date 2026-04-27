@@ -38,6 +38,7 @@ export interface ScheduleMemberView {
   userName: string;
   role: InstrumentRole;
   status: MemberStatus;
+  declineReason?: string | null;
 }
 
 export interface NotificationView {

@@ -20,7 +20,15 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
 }
 
 export async function uploadAudio(file: Blob) {
-  const filePath = `${crypto.randomUUID()}/voice-note-${Date.now()}.webm`;
+  const extension =
+    file.type.includes('mp4') || file.type.includes('m4a')
+      ? 'm4a'
+      : file.type.includes('mpeg')
+        ? 'mp3'
+        : file.type.includes('wav')
+          ? 'wav'
+          : 'webm';
+  const filePath = `${crypto.randomUUID()}/voice-note-${Date.now()}.${extension}`;
   const { error } = await supabase.storage.from('chat-audio').upload(filePath, file, {
     contentType: file.type || 'audio/webm',
     upsert: false,
@@ -40,4 +48,24 @@ export async function uploadAudio(file: Blob) {
     url: publicUrl,
     storage: 'remote' as const,
   };
+}
+
+export async function sendNotificationEmail(payload: {
+  to: string;
+  subject: string;
+  html: string;
+}) {
+  const response = await fetch('/api/notification-email', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error('Nao consegui disparar o email desta notificacao.');
+  }
+
+  return response.json();
 }

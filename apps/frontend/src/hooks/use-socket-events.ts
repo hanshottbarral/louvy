@@ -34,6 +34,10 @@ export function useSocketEvents() {
       return;
     }
 
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+      void Notification.requestPermission();
+    }
+
     let refreshTimeout: ReturnType<typeof setTimeout> | undefined;
     const queueRefresh = () => {
       if (refreshTimeout) {
@@ -70,6 +74,19 @@ export function useSocketEvents() {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${currentUser.id}` },
         queueRefresh,
+      )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${currentUser.id}` },
+        (payload) => {
+          const next = payload.new as { title?: string; body?: string };
+          if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+            new Notification(next.title ?? 'Nova notificacao', {
+              body: next.body ?? 'Voce recebeu uma atualizacao no Louvy.',
+            });
+          }
+          queueRefresh();
+        },
       )
       .subscribe();
 

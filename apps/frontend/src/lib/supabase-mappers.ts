@@ -29,6 +29,7 @@ interface ScheduleMemberRow {
   user_id: string;
   role: keyof typeof InstrumentRole;
   status: keyof typeof MemberStatus;
+  decline_reason?: string | null;
 }
 
 interface ScheduleSongRow {
@@ -79,6 +80,7 @@ export function mapSchedules(args: {
         userName: profileMap.get(member.user_id)?.name ?? 'Membro',
         role: InstrumentRole[member.role],
         status: MemberStatus[member.status],
+        declineReason: member.decline_reason ?? null,
       }));
 
     const scheduleSongs = args.songs

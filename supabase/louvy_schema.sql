@@ -16,7 +16,17 @@ begin
   end if;
 
   if not exists (select 1 from pg_type where typname = 'instrument_role') then
-    create type public.instrument_role as enum ('VOCAL', 'GUITAR', 'BASS', 'DRUMS', 'KEYS');
+    create type public.instrument_role as enum (
+      'VOCAL',
+      'GUITAR',
+      'BASS',
+      'DRUMS',
+      'KEYS',
+      'VIOLAO',
+      'DIRETOR_MUSICAL',
+      'MINISTRO_RESPONSAVEL',
+      'VS'
+    );
   end if;
 
   if not exists (select 1 from pg_type where typname = 'member_status') then
@@ -104,6 +114,7 @@ create table if not exists public.schedule_members (
   user_id uuid not null references public.profiles(id) on delete cascade,
   role public.instrument_role not null,
   status public.member_status not null default 'PENDING',
+  decline_reason text,
   last_read_at timestamptz,
   created_at timestamptz not null default timezone('utc', now()),
   updated_at timestamptz not null default timezone('utc', now()),

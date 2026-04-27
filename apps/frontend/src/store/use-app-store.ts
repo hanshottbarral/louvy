@@ -9,6 +9,7 @@ import {
   saveAvailabilityBlock,
   saveMemberDirectoryProfile,
 } from '@/lib/member-calendar';
+import { sendNotificationEmail } from '@/lib/api';
 import { fetchRepertoireLibrary, insertRepertoireSong } from '@/lib/repertoire';
 import { supabase } from '@/lib/supabase';
 import { mapMessages, mapNotifications, mapSchedules } from '@/lib/supabase-mappers';
@@ -75,6 +76,11 @@ interface AppState {
     status: MemberStatus;
   }) => Promise<void>;
   removeMemberFromSchedule: (scheduleMemberId: string) => Promise<void>;
+  respondToScheduleMember: (payload: {
+    scheduleMemberId: string;
+    status: MemberStatus;
+    declineReason?: string;
+  }) => Promise<void>;
   saveRepertoireSong: (payload: RepertoireSongInput) => Promise<string | undefined>;
   reorderSongs: (scheduleId: string, songIds: string[]) => Promise<void>;
   addSongToSchedule: (scheduleId: string, songId: string) => Promise<void>;
@@ -107,6 +113,38 @@ async function syncCurrentUserProfile(stateUser: SessionUser) {
   } satisfies SessionUser;
 }
 
+async function fetchAdminProfiles(excludingUserId?: string) {
+  const query = supabase
+    .from('profiles')
+    .select('id, name, email, role')
+    .eq('role', AppRole.ADMIN);
+
+  const { data, error } = excludingUserId ? await query.neq('id', excludingUserId) : await query;
+  if (error) {
+    throw error;
+  }
+
+  return data ?? [];
+}
+
+async function createInAppNotification(payload: {
+  userId: string;
+  title: string;
+  body: string;
+  type: 'NEW_MESSAGE' | 'SCHEDULE_ASSIGNED' | 'STATUS_CHANGED' | 'SCHEDULE_UPDATED';
+}) {
+  const { error } = await supabase.from('notifications').insert({
+    user_id: payload.userId,
+    title: payload.title,
+    body: payload.body,
+    type: payload.type,
+  });
+
+  if (error) {
+    throw error;
+  }
+}
+
 async function fetchDataForUser(currentUser: SessionUser) {
   let scheduleIds: string[] = [];
 
@@ -130,6 +168,34 @@ async function fetchDataForUser(currentUser: SessionUser) {
     scheduleIds = Array.from(new Set((data ?? []).map((item) => item.schedule_id)));
   }
 
+  const scheduleMembersSelect =
+    'id, schedule_id, user_id, role, status, decline_reason';
+
+  const fetchScheduleMembers = async () => {
+    if (scheduleIds.length === 0) {
+      return { data: [], error: null };
+    }
+
+    const extendedResult = await supabase
+      .from('schedule_members')
+      .select(scheduleMembersSelect)
+      .in('schedule_id', scheduleIds);
+
+    if (
+      extendedResult.error &&
+      (extendedResult.error.code === '42703' ||
+        extendedResult.error.code === 'PGRST204' ||
+        extendedResult.error.message.toLowerCase().includes('column'))
+    ) {
+      return supabase
+        .from('schedule_members')
+        .select('id, schedule_id, user_id, role, status')
+        .in('schedule_id', scheduleIds);
+    }
+
+    return extendedResult;
+  };
+
   const schedulesPromise =
     scheduleIds.length > 0
       ? supabase
@@ -139,13 +205,7 @@ async function fetchDataForUser(currentUser: SessionUser) {
           .order('event_date', { ascending: true })
       : Promise.resolve({ data: [], error: null });
 
-  const membersPromise =
-    scheduleIds.length > 0
-      ? supabase
-          .from('schedule_members')
-          .select('id, schedule_id, user_id, role, status')
-          .in('schedule_id', scheduleIds)
-      : Promise.resolve({ data: [], error: null });
+  const membersPromise = fetchScheduleMembers();
 
   const songsPromise =
     scheduleIds.length > 0
@@ -724,11 +784,36 @@ export const useAppStore = create<AppState>((set, get) => ({
       user_id: userId,
       role,
       status,
+      decline_reason: null,
     });
 
     if (error) {
       set({ authMessage: error.message });
       return;
+    }
+
+    const schedule = get().schedules.find((entry) => entry.id === scheduleId);
+    const profile = get().memberDirectory.find((entry) => entry.userId === userId);
+
+    if (profile) {
+      try {
+        await createInAppNotification({
+          userId,
+          title: 'Nova escala',
+          body: `Voce foi escalado em ${schedule?.title ?? 'uma nova escala'}. Confirme ou recuse no app.`,
+          type: 'SCHEDULE_ASSIGNED',
+        });
+
+        if (profile.email) {
+          await sendNotificationEmail({
+            to: profile.email,
+            subject: 'Voce foi escalado no Louvy',
+            html: `<p>Ola, ${profile.name}.</p><p>Voce foi escalado em <strong>${schedule?.title ?? 'uma nova escala'}</strong>. Entre no app para confirmar ou recusar.</p>`,
+          });
+        }
+      } catch {
+        // Mantem fluxo da escala mesmo se email/popup falhar.
+      }
     }
 
     await get().refreshData();
@@ -754,6 +839,67 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     await get().refreshData();
     set({ authMessage: 'Membro removido da escala.' });
+  },
+  respondToScheduleMember: async ({ scheduleMemberId, status, declineReason }) => {
+    const currentUser = get().currentUser;
+    if (!currentUser) {
+      return;
+    }
+
+    if (status === MemberStatus.DECLINED && !declineReason?.trim()) {
+      set({ authMessage: 'Ao recusar, informe o motivo.' });
+      return;
+    }
+
+    const { error } = await supabase
+      .from('schedule_members')
+      .update({
+        status,
+        decline_reason: status === MemberStatus.DECLINED ? declineReason?.trim() ?? null : null,
+      })
+      .eq('id', scheduleMemberId)
+      .eq('user_id', currentUser.id);
+
+    if (error) {
+      set({ authMessage: error.message });
+      return;
+    }
+
+    const targetSchedule = get().schedules.find((schedule) =>
+      schedule.members.some((member) => member.id === scheduleMemberId),
+    );
+
+    if (targetSchedule && status === MemberStatus.DECLINED) {
+      try {
+        const admins = await fetchAdminProfiles(currentUser.id);
+        await Promise.all(
+          admins.map(async (admin) => {
+            await createInAppNotification({
+              userId: admin.id,
+              title: 'Membro recusou escala',
+              body: `${currentUser.name} recusou ${targetSchedule.title}. Motivo: ${declineReason?.trim()}`,
+              type: 'STATUS_CHANGED',
+            });
+
+            if (admin.email) {
+              await sendNotificationEmail({
+                to: admin.email,
+                subject: 'Recusa de escala no Louvy',
+                html: `<p>${currentUser.name} recusou a escala <strong>${targetSchedule.title}</strong>.</p><p>Motivo: ${declineReason?.trim()}</p>`,
+              });
+            }
+          }),
+        );
+      } catch {
+        // Sem bloquear a resposta do membro por email/popup falho.
+      }
+    }
+
+    await get().refreshData();
+    set({
+      authMessage:
+        status === MemberStatus.CONFIRMED ? 'Presenca confirmada.' : 'Recusa registrada e lideranca notificada.',
+    });
   },
   saveRepertoireSong: async (payload) => {
     const currentUser = get().currentUser;

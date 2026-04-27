@@ -12,6 +12,10 @@ export const instrumentRoleLabel: Record<InstrumentRole, string> = {
   BASS: 'Baixo',
   DRUMS: 'Bateria',
   KEYS: 'Teclado',
+  VIOLAO: 'Violao',
+  DIRETOR_MUSICAL: 'Diretor musical',
+  MINISTRO_RESPONSAVEL: 'Ministro responsavel',
+  VS: 'VS',
 };
 
 export const memberStatusLabel: Record<MemberStatus, string> = {
