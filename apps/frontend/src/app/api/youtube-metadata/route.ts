@@ -48,8 +48,9 @@ function decodeDuckDuckGoHref(value: string) {
   }
 }
 
-async function fetchText(url: string, extraHeaders?: Record<string, string>) {
+async function fetchText(url: string, extraHeaders?: Record<string, string>, timeoutMs = 4500) {
   const response = await fetch(url, {
+    signal: AbortSignal.timeout(timeoutMs),
     headers: {
       'accept-language': 'pt-BR,pt;q=0.9,en;q=0.8',
       'user-agent':
@@ -68,7 +69,11 @@ async function fetchText(url: string, extraHeaders?: Record<string, string>) {
 
 async function searchDuckDuckGo(query: string) {
   try {
-    const html = await fetchText(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`);
+    const html = await fetchText(
+      `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`,
+      undefined,
+      2200,
+    );
     const urls = [...html.matchAll(/result__a" href="([^"]+)"/g)]
       .map((match) => decodeDuckDuckGoHref(match[1]))
       .filter(Boolean);
@@ -182,9 +187,9 @@ export async function GET(request: NextRequest) {
     const multitracksUrl = multitracksResults.find((item) => item.includes('multitracks.com.br')) ?? '';
 
     const [cifraHtml, songBpmHtml, multitracksHtml] = await Promise.all([
-      cifraUrl ? fetchText(cifraUrl).catch(() => '') : Promise.resolve(''),
-      songBpmUrl ? fetchText(songBpmUrl).catch(() => '') : Promise.resolve(''),
-      multitracksUrl ? fetchText(multitracksUrl).catch(() => '') : Promise.resolve(''),
+      cifraUrl ? fetchText(cifraUrl, undefined, 2500).catch(() => '') : Promise.resolve(''),
+      songBpmUrl ? fetchText(songBpmUrl, undefined, 2500).catch(() => '') : Promise.resolve(''),
+      multitracksUrl ? fetchText(multitracksUrl, undefined, 2500).catch(() => '') : Promise.resolve(''),
     ]);
 
     const songBpmMetrics = songBpmHtml ? parseSongBpmMetrics(songBpmHtml) : { bpm: null, durationSeconds: null, key: '' };
