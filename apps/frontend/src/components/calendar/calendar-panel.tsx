@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { AppRole, ScheduleEventType } from '@louvy/shared';
-import { CalendarDays, Clock3, LockKeyhole, PlusCircle, RefreshCw } from 'lucide-react';
+import { CalendarDays, Clock3, LockKeyhole, Pencil, PlusCircle, RefreshCw, Trash2 } from 'lucide-react';
 import { availabilityRecurrenceLabel, availabilityTimeSlotLabel } from '@/lib/labels';
 import { formatScheduleDate, getWeekdayLabel } from '@/lib/utils';
 import { useAppStore } from '@/store/use-app-store';
@@ -52,6 +52,7 @@ export function CalendarPanel() {
   const saveAvailabilityBlock = useAppStore((state) => state.saveAvailabilityBlock);
   const removeAvailabilityBlock = useAppStore((state) => state.removeAvailabilityBlock);
   const saveSchedule = useAppStore((state) => state.saveSchedule);
+  const deleteSchedule = useAppStore((state) => state.deleteSchedule);
   const selectSchedule = useAppStore((state) => state.selectSchedule);
   const setActiveSection = useAppStore((state) => state.setActiveSection);
   const [monthAnchor, setMonthAnchor] = useState(() => new Date());
@@ -255,14 +256,45 @@ export function CalendarPanel() {
                   }}
                   className="w-full rounded-2xl border border-[var(--line)] bg-[var(--surface-strong)] p-4 text-left"
                 >
-                  <p className="font-semibold">{schedule.title}</p>
-                  <div className="mt-2 flex flex-wrap gap-2 text-sm text-[var(--muted)]">
-                    <span className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-2">
-                      <Clock3 size={14} /> {schedule.time}
-                    </span>
-                    <span className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-2">
-                      {schedule.memberCount} membros
-                    </span>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-semibold">{schedule.title}</p>
+                      <div className="mt-2 flex flex-wrap gap-2 text-sm text-[var(--muted)]">
+                        <span className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-2">
+                          <Clock3 size={14} /> {schedule.time}
+                        </span>
+                        <span className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-2">
+                          {schedule.memberCount} membros
+                        </span>
+                      </div>
+                    </div>
+                    {currentUser?.role === AppRole.ADMIN ? (
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setActiveSection('schedules');
+                            selectSchedule(schedule.id);
+                          }}
+                          className="rounded-full border border-[var(--line)] bg-white p-2"
+                          title="Editar escala"
+                        >
+                          <Pencil size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void deleteSchedule(schedule.id);
+                          }}
+                          className="rounded-full border border-[var(--line)] bg-white p-2 text-[var(--danger)]"
+                          title="Excluir escala"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    ) : null}
                   </div>
                 </button>
               ))

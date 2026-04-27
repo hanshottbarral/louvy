@@ -4,6 +4,7 @@ import {
   extractKey,
   extractYoutubeVideoId,
   guessTitleAndArtist,
+  suggestTagsFromYoutubeText,
   YoutubeMetadata,
 } from '@/lib/youtube-metadata';
 
@@ -81,6 +82,7 @@ export async function GET(request: NextRequest) {
       durationSeconds,
       key: extractKey(combinedText) || undefined,
       bpm: extractBpm(combinedText),
+      tags: suggestTagsFromYoutubeText(combinedText),
     };
 
     return NextResponse.json(payload);

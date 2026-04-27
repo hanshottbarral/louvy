@@ -29,6 +29,7 @@ import {
   SessionUser,
   VocalRange,
 } from '@/types';
+import { normalizeTagLabel } from '@/lib/utils';
 
 interface AppState {
   activeSection: AppSection;
@@ -986,14 +987,29 @@ export const useAppStore = create<AppState>((set, get) => ({
       return undefined;
     }
 
+    if (currentUser.role !== AppRole.ADMIN) {
+      set({ authMessage: 'Apenas administradores podem editar o repertório geral.' });
+      return undefined;
+    }
+
+    const normalizedPayload = {
+      ...payload,
+      category: normalizeTagLabel(payload.category),
+      tags: payload.tags.map((tag) => normalizeTagLabel(tag)).filter(Boolean),
+    };
+
     try {
-      const result = await insertRepertoireSong(payload, currentUser.id);
+      const result = await insertRepertoireSong(normalizedPayload, currentUser.id);
       await get().refreshData();
       set({
         activeSection: 'repertoire',
         isCreatingRepertoireSong: false,
         authMessage: result.usedLegacyFallback
-          ? 'Música salva. Para persistir artista e duração no banco, aplique o patch SQL novo do repertório.'
+          ? payload.id
+            ? 'Música atualizada. Para persistir artista e duração no banco, aplique o patch SQL novo do repertório.'
+            : 'Música salva. Para persistir artista e duração no banco, aplique o patch SQL novo do repertório.'
+          : payload.id
+            ? 'Música atualizada.'
           : undefined,
       });
       return result.id;

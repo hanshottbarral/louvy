@@ -88,6 +88,41 @@ export async function insertRepertoireSong(payload: RepertoireSongInput, created
     is_active: true,
   };
 
+  if (payload.id) {
+    const { error } = await supabase.from('repertoire_songs').update(extendedBody).eq('id', payload.id);
+    if (!error) {
+      return {
+        id: payload.id,
+        usedLegacyFallback: false,
+      };
+    }
+
+    if (!isSchemaMismatch(error)) {
+      throw error;
+    }
+
+    const legacyUpdate = await supabase
+      .from('repertoire_songs')
+      .update({
+        name: extendedBody.name,
+        musical_key: extendedBody.musical_key,
+        bpm: extendedBody.bpm,
+        youtube_url: extendedBody.youtube_url,
+        category: extendedBody.category,
+        tags: extendedBody.tags,
+      })
+      .eq('id', payload.id);
+
+    if (legacyUpdate.error) {
+      throw legacyUpdate.error;
+    }
+
+    return {
+      id: payload.id,
+      usedLegacyFallback: true,
+    };
+  }
+
   const extendedResult = await supabase
     .from('repertoire_songs')
     .insert(extendedBody)

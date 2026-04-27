@@ -4,6 +4,7 @@ export interface YoutubeMetadata {
   durationSeconds?: number | null;
   key?: string;
   bpm?: number | null;
+  tags?: string[];
 }
 
 export function extractYoutubeVideoId(url: string) {
@@ -58,4 +59,32 @@ export function extractKey(text: string) {
     text.match(/\b([A-G](?:#|b)?m?)\s*(?:tom|key)\b/i);
 
   return match ? match[1].toUpperCase() : '';
+}
+
+export function suggestTagsFromYoutubeText(text: string) {
+  const normalized = text.toLowerCase();
+  const suggestions = new Set<string>();
+
+  const rules: Array<[RegExp, string]> = [
+    [/\b(abertura|entrada|inicio)\b/i, 'Abertura'],
+    [/\b(encerramento|finale|final)\b/i, 'Encerramento'],
+    [/\b(culto|igreja|church service)\b/i, 'Culto'],
+    [/\b(adora[cç][aã]o|worship)\b/i, 'Adoração'],
+    [/\b(ministra[cç][aã]o|ministry)\b/i, 'Ministração'],
+    [/\b(celebra[cç][aã]o|celebration)\b/i, 'Celebração'],
+    [/\b(ofert[oó]rio|oferta)\b/i, 'Ofertório'],
+    [/\b(comunh[aã]o|ceia)\b/i, 'Comunhão'],
+  ];
+
+  for (const [pattern, tag] of rules) {
+    if (pattern.test(normalized)) {
+      suggestions.add(tag);
+    }
+  }
+
+  if (suggestions.size === 0) {
+    suggestions.add('Culto');
+  }
+
+  return Array.from(suggestions);
 }

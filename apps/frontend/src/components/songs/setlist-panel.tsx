@@ -1,41 +1,50 @@
 'use client';
 
 import { AppRole } from '@louvy/shared';
-import { Save, Youtube } from 'lucide-react';
+import { Youtube } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useAppStore } from '@/store/use-app-store';
 import { ScheduleView } from '@/types';
-import { youtubePlaylistUrl } from '@/lib/utils';
+import { formatDuration, youtubePlaylistUrl } from '@/lib/utils';
 
 export function SetlistPanel({ schedule }: { schedule: ScheduleView }) {
   const currentUser = useAppStore((state) => state.currentUser);
   const authMessage = useAppStore((state) => state.authMessage);
+  const repertoire = useAppStore((state) => state.repertoire);
   const updateScheduleSongArrangement = useAppStore((state) => state.updateScheduleSongArrangement);
   const playlistUrl = youtubePlaylistUrl(schedule.songs.map((song) => song.youtubeUrl));
   const currentScheduleMember = schedule.members.find((member) => member.userId === currentUser?.id);
   const canManageSongs =
     currentUser?.role === AppRole.ADMIN || Boolean(currentScheduleMember?.canManageSetlist);
+  const totalDurationSeconds = schedule.songs.reduce((total, song) => {
+    const repertoireMatch = repertoire.find(
+      (entry) =>
+        (song.youtubeUrl && entry.youtubeUrl === song.youtubeUrl) ||
+        (!song.youtubeUrl && entry.name === song.name),
+    );
+    return total + (repertoireMatch?.durationSeconds ?? 0);
+  }, 0);
 
   return (
     <section className="glass rounded-3xl p-4">
       <div className="mb-4 flex items-center justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Setlist</p>
-          <h3 className="text-xl">Músicas da escala</h3>
+          <h3 className="text-xl">Músicas</h3>
         </div>
         <div className="flex items-center gap-2">
           {playlistUrl ? (
             <button
               type="button"
               onClick={() => window.open(playlistUrl, '_blank', 'noopener,noreferrer')}
-              className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-sm text-white"
+              className="inline-flex items-center justify-center rounded-full bg-[var(--accent)] p-2 text-white"
+              title="Abrir playlist da escala no YouTube"
             >
               <Youtube size={16} />
-              YouTube
             </button>
           ) : null}
           <span className="rounded-full bg-[var(--surface-strong)] px-3 py-1 text-sm">
-            {schedule.songs.length} música{schedule.songs.length === 1 ? '' : 's'}
+            {formatDuration(totalDurationSeconds)}
           </span>
         </div>
       </div>
@@ -84,6 +93,7 @@ function SetlistSongCard({
 }) {
   const [keyValue, setKeyValue] = useState(song.key);
   const [leadSinger, setLeadSinger] = useState(song.leadSingerUserId ?? '');
+  const [lastSavedSignature, setLastSavedSignature] = useState('');
 
   useEffect(() => {
     setKeyValue(song.key);
@@ -92,6 +102,28 @@ function SetlistSongCard({
   useEffect(() => {
     setLeadSinger(song.leadSingerUserId ?? '');
   }, [song.leadSingerUserId]);
+
+  useEffect(() => {
+    setLastSavedSignature(JSON.stringify({ key: song.key, leadSingerUserId: song.leadSingerUserId ?? '' }));
+  }, [song.key, song.leadSingerUserId]);
+
+  useEffect(() => {
+    if (!canManageSongs) {
+      return;
+    }
+
+    const nextSignature = JSON.stringify({ key: keyValue, leadSingerUserId: leadSinger });
+    if (nextSignature === lastSavedSignature) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      onSave(keyValue, leadSinger || null);
+      setLastSavedSignature(nextSignature);
+    }, 500);
+
+    return () => window.clearTimeout(timeout);
+  }, [canManageSongs, keyValue, leadSinger, lastSavedSignature, onSave]);
 
   return (
     <article className="rounded-2xl border border-[var(--line)] bg-[var(--surface-strong)] p-3">
@@ -110,7 +142,7 @@ function SetlistSongCard({
           </div>
 
           {canManageSongs ? (
-            <div className="mt-3 grid gap-2 lg:grid-cols-[72px_minmax(0,1fr)_auto]">
+            <div className="mt-3 grid gap-2 lg:grid-cols-[72px_minmax(0,1fr)]">
               <input
                 value={keyValue}
                 onChange={(event) => setKeyValue(event.target.value.slice(0, 4))}
@@ -132,14 +164,6 @@ function SetlistSongCard({
                     </option>
                   ))}
               </select>
-              <button
-                type="button"
-                onClick={() => onSave(keyValue, leadSinger || null)}
-                className="inline-flex items-center justify-center rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-[var(--foreground)]"
-                title="Salvar ajustes desta música"
-              >
-                <Save size={16} />
-              </button>
             </div>
           ) : null}
         </div>

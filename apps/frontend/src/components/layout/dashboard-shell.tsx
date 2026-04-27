@@ -56,7 +56,7 @@ export function DashboardShell() {
 
   return (
     <main className="min-h-screen p-3 md:p-5">
-      <div className="mx-auto grid min-h-[calc(100vh-1.5rem)] max-w-[1600px] gap-3 lg:grid-cols-[300px_minmax(0,1fr)]">
+      <div className="mx-auto grid min-h-[calc(100vh-1.5rem)] max-w-[1600px] gap-3 lg:grid-cols-[250px_minmax(0,1fr)]">
         <Sidebar />
         <section className="glass overflow-hidden rounded-[28px] lg:h-[calc(100vh-1.5rem)] lg:overflow-y-auto">
           {activeSection === 'repertoire' ? (

@@ -142,3 +142,12 @@ export function prettifyChurchText(value?: string | null) {
     value,
   );
 }
+
+export function normalizeTagLabel(value: string) {
+  return prettifyChurchText(value)
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(' ');
+}

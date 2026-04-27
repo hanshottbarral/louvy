@@ -1,9 +1,25 @@
 'use client';
 
-import { Search, PlusCircle, Music4, WandSparkles, ArrowDown, ArrowUp, Save, Trash2 } from 'lucide-react';
+import {
+  ArrowDown,
+  ArrowUp,
+  ExternalLink,
+  Pencil,
+  PlusCircle,
+  Search,
+  Trash2,
+  WandSparkles,
+} from 'lucide-react';
 import { FormEvent, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { AppRole } from '@louvy/shared';
-import { formatDuration, formatScheduleDate, parseDurationInput, prettifyChurchText } from '@/lib/utils';
+import {
+  formatDuration,
+  formatScheduleDate,
+  normalizeTagLabel,
+  parseDurationInput,
+  prettifyChurchText,
+  youtubePlaylistUrl,
+} from '@/lib/utils';
 import { useAppStore } from '@/store/use-app-store';
 import { YoutubeMetadata } from '@/lib/youtube-metadata';
 
@@ -30,6 +46,7 @@ export function RepertoirePanel() {
   const [youtubeUrl, setYoutubeUrl] = useState('');
   const [category, setCategory] = useState('Geral');
   const [tags, setTags] = useState('');
+  const [editingSongId, setEditingSongId] = useState<string | null>(null);
   const [targetScheduleId, setTargetScheduleId] = useState('');
   const [autofillMessage, setAutofillMessage] = useState('');
   const [isAutofilling, setIsAutofilling] = useState(false);
@@ -67,6 +84,41 @@ export function RepertoirePanel() {
   const targetMemberCanManageSetlist = targetSchedule?.members.find((member) => member.userId === currentUser?.id)?.canManageSetlist;
   const canManageTargetSetlist =
     currentUser?.role === AppRole.ADMIN || Boolean(targetMemberCanManageSetlist);
+  const targetPlaylistUrl = youtubePlaylistUrl(targetSchedule?.songs.map((song) => song.youtubeUrl) ?? []);
+
+  const resetComposer = () => {
+    setEditingSongId(null);
+    setName('');
+    setArtist('');
+    setKey('');
+    setBpm('');
+    setDuration('');
+    setYoutubeUrl('');
+    setCategory('Geral');
+    setTags('');
+    setAutofillMessage('');
+    lastAutofilledUrl.current = '';
+  };
+
+  const openSongForEditing = (songId: string) => {
+    const song = repertoire.find((entry) => entry.id === songId);
+    if (!song) {
+      return;
+    }
+
+    setEditingSongId(song.id);
+    setName(song.name);
+    setArtist(song.artist ?? '');
+    setKey(song.key);
+    setBpm(song.bpm ? String(song.bpm) : '');
+    setDuration(song.durationSeconds ? formatDuration(song.durationSeconds) : '');
+    setYoutubeUrl(song.youtubeUrl ?? '');
+    setCategory(prettifyChurchText(song.category) || 'Geral');
+    setTags(song.tags.map((tag) => normalizeTagLabel(tag)).join(', '));
+    setAutofillMessage('Você está editando uma música já cadastrada.');
+    lastAutofilledUrl.current = song.youtubeUrl ?? '';
+    openRepertoireComposer();
+  };
 
   const moveSong = async (songId: string, direction: 'up' | 'down') => {
     if (!targetSchedule) {
@@ -117,8 +169,9 @@ export function RepertoirePanel() {
       setKey(payload.key || '');
       setBpm(payload.bpm ? String(payload.bpm) : '');
       setDuration(payload.durationSeconds ? formatDuration(payload.durationSeconds) : '');
+      setTags((payload.tags ?? []).map((tag) => normalizeTagLabel(tag)).join(', '));
       lastAutofilledUrl.current = normalizedUrl;
-      setAutofillMessage('Dados puxados do link. Ajuste o que precisar antes de salvar.');
+      setAutofillMessage('Dados puxados do link. Tags sugeridas automaticamente; ajuste o que precisar antes de salvar.');
     } catch {
       setAutofillMessage('Não consegui consultar o link agora. Tente de novo em instantes.');
     } finally {
@@ -130,6 +183,7 @@ export function RepertoirePanel() {
     event.preventDefault();
 
     const created = await saveRepertoireSong({
+      id: editingSongId ?? undefined,
       name,
       artist,
       key,
@@ -139,7 +193,7 @@ export function RepertoirePanel() {
       category,
       tags: tags
         .split(',')
-        .map((item) => item.trim())
+        .map((item) => normalizeTagLabel(item))
         .filter(Boolean),
     });
 
@@ -147,16 +201,7 @@ export function RepertoirePanel() {
       return;
     }
 
-    setName('');
-    setArtist('');
-    setKey('');
-    setBpm('');
-    setDuration('');
-    setYoutubeUrl('');
-    setCategory('Geral');
-    setTags('');
-    setAutofillMessage('');
-    lastAutofilledUrl.current = '';
+    resetComposer();
   };
 
   return (
@@ -205,7 +250,16 @@ export function RepertoirePanel() {
                 </div>
                 <button
                   type="button"
-                  onClick={isCreatingRepertoireSong ? closeRepertoireComposer : openRepertoireComposer}
+                  onClick={() => {
+                    if (isCreatingRepertoireSong) {
+                      closeRepertoireComposer();
+                      resetComposer();
+                      return;
+                    }
+
+                    resetComposer();
+                    openRepertoireComposer();
+                  }}
                   className="rounded-full bg-[var(--foreground)] px-4 py-2 text-sm text-white"
                 >
                   {isCreatingRepertoireSong ? 'Fechar' : 'Nova música'}
@@ -260,7 +314,7 @@ export function RepertoirePanel() {
                   ) : null}
                   <div className="md:col-span-2 flex justify-end">
                     <button type="submit" className="rounded-2xl bg-[var(--foreground)] px-5 py-3 text-sm text-white">
-                      Salvar música
+                      {editingSongId ? 'Salvar alterações' : 'Salvar música'}
                     </button>
                   </div>
                 </form>
@@ -289,13 +343,34 @@ export function RepertoirePanel() {
                       {song.durationSeconds ? ` • ${formatDuration(song.durationSeconds)}` : ''}
                     </p>
                   </div>
-                  <Music4 size={18} className="text-[var(--muted)]" />
+                  <div className="flex items-center gap-1">
+                    {song.youtubeUrl ? (
+                      <button
+                        type="button"
+                        onClick={() => window.open(song.youtubeUrl ?? '', '_blank', 'noopener,noreferrer')}
+                        className="rounded-full border border-[var(--line)] p-2 text-[var(--muted)]"
+                        title="Ouvir versão no YouTube"
+                      >
+                        <ExternalLink size={16} />
+                      </button>
+                    ) : null}
+                    {currentUser?.role === AppRole.ADMIN ? (
+                      <button
+                        type="button"
+                        onClick={() => openSongForEditing(song.id)}
+                        className="rounded-full border border-[var(--line)] p-2 text-[var(--muted)]"
+                        title="Editar música"
+                      >
+                        <Pencil size={16} />
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
 
                 <div className="mt-3 flex flex-wrap gap-2">
                   {song.tags.map((tag) => (
                     <span key={tag} className="rounded-full bg-[rgba(122,31,62,0.1)] px-3 py-1 text-xs text-[var(--accent-strong)]">
-                      {prettifyChurchText(tag)}
+                      {normalizeTagLabel(tag)}
                     </span>
                   ))}
                 </div>
@@ -344,6 +419,19 @@ export function RepertoirePanel() {
 
           {targetSchedule ? (
             <div className="mt-4 space-y-3">
+              <div className="flex items-center justify-between gap-2 rounded-2xl border border-[var(--line)] bg-[var(--surface-strong)] px-3 py-2">
+                <span className="text-sm font-semibold">Setlist da escala</span>
+                {targetPlaylistUrl ? (
+                  <button
+                    type="button"
+                    onClick={() => window.open(targetPlaylistUrl, '_blank', 'noopener,noreferrer')}
+                    className="rounded-full border border-[var(--line)] bg-white p-2"
+                    title="Abrir playlist da escala no YouTube"
+                  >
+                    <ExternalLink size={14} />
+                  </button>
+                ) : null}
+              </div>
               {targetSchedule.songs.map((song, index) => (
                 <div key={song.id} className="rounded-2xl border border-[var(--line)] bg-[var(--surface-strong)] p-3">
                   <div className="flex items-start justify-between gap-3">
@@ -378,7 +466,7 @@ export function RepertoirePanel() {
                     </div>
                   </div>
 
-                  <div className="mt-3 grid gap-2 lg:grid-cols-[76px_minmax(0,1fr)_auto_auto]">
+                  <div className="mt-3 grid gap-2 lg:grid-cols-[76px_minmax(0,1fr)_auto]">
                     <TargetSongArrangementEditor
                       initialKey={song.key}
                       initialLeadSingerUserId={song.leadSingerUserId}
@@ -428,6 +516,7 @@ function TargetSongArrangementEditor({
 }) {
   const [keyValue, setKeyValue] = useState(initialKey);
   const [leadSinger, setLeadSinger] = useState(initialLeadSingerUserId ?? '');
+  const [lastSavedSignature, setLastSavedSignature] = useState('');
 
   useEffect(() => {
     setKeyValue(initialKey);
@@ -436,6 +525,28 @@ function TargetSongArrangementEditor({
   useEffect(() => {
     setLeadSinger(initialLeadSingerUserId ?? '');
   }, [initialLeadSingerUserId]);
+
+  useEffect(() => {
+    setLastSavedSignature(JSON.stringify({ key: initialKey, leadSingerUserId: initialLeadSingerUserId ?? '' }));
+  }, [initialKey, initialLeadSingerUserId]);
+
+  useEffect(() => {
+    if (disabled) {
+      return;
+    }
+
+    const nextSignature = JSON.stringify({ key: keyValue, leadSingerUserId: leadSinger });
+    if (nextSignature === lastSavedSignature) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      onSave(keyValue, leadSinger || null);
+      setLastSavedSignature(nextSignature);
+    }, 500);
+
+    return () => window.clearTimeout(timeout);
+  }, [disabled, keyValue, leadSinger, lastSavedSignature, onSave]);
 
   return (
     <>
@@ -462,15 +573,6 @@ function TargetSongArrangementEditor({
             </option>
           ))}
       </select>
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={() => onSave(keyValue, leadSinger || null)}
-        className="inline-flex items-center justify-center rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-[var(--foreground)]"
-        title="Salvar ajustes da música"
-      >
-        <Save size={16} />
-      </button>
     </>
   );
 }
