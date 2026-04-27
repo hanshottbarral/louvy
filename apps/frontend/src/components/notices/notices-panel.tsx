@@ -1,8 +1,8 @@
 'use client';
 
 import { AppRole } from '@louvy/shared';
-import { FormEvent, useEffect, useState } from 'react';
-import { Link2, Megaphone, PlusCircle } from 'lucide-react';
+import { ChangeEvent, DragEvent, FormEvent, useEffect, useRef, useState } from 'react';
+import { ImagePlus, Link2, Megaphone, PlusCircle, Trash2 } from 'lucide-react';
 import { loadNotices, saveNotice, NoticeItem } from '@/lib/community';
 import { formatScheduleDate } from '@/lib/utils';
 import { useAppStore } from '@/store/use-app-store';
@@ -16,6 +16,8 @@ export function NoticesPanel() {
   const [imageUrl, setImageUrl] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string>();
+  const [isDraggingImage, setIsDraggingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     void loadNotices()
@@ -49,6 +51,46 @@ export function NoticesPanel() {
       setMessage(error instanceof Error ? error.message : 'Não consegui publicar este aviso.');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const applyImageFile = async (file?: File | null) => {
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      setMessage('Escolha um arquivo de imagem válido.');
+      return;
+    }
+
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : '');
+      reader.onerror = () => reject(new Error('Não consegui carregar essa imagem.'));
+      reader.readAsDataURL(file);
+    });
+
+    setImageUrl(dataUrl);
+  };
+
+  const handleImageInput = async (event: ChangeEvent<HTMLInputElement>) => {
+    try {
+      await applyImageFile(event.target.files?.[0]);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Não consegui carregar essa imagem.');
+    } finally {
+      event.target.value = '';
+    }
+  };
+
+  const handleDrop = async (event: DragEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    setIsDraggingImage(false);
+    try {
+      await applyImageFile(event.dataTransfer.files?.[0]);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Não consegui carregar essa imagem.');
     }
   };
 
@@ -116,6 +158,13 @@ export function NoticesPanel() {
         {currentUser?.role === AppRole.ADMIN ? (
           <form onSubmit={handleSubmit} className="mt-4 space-y-3">
             <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageInput}
+              className="hidden"
+            />
+            <input
               value={title}
               onChange={(event) => setTitle(event.target.value)}
               placeholder="Título"
@@ -134,12 +183,43 @@ export function NoticesPanel() {
               placeholder="Link opcional"
               className="w-full rounded-2xl border border-[var(--line)] bg-white px-4 py-3 outline-none"
             />
-            <input
-              value={imageUrl}
-              onChange={(event) => setImageUrl(event.target.value)}
-              placeholder="URL da imagem opcional"
-              className="w-full rounded-2xl border border-[var(--line)] bg-white px-4 py-3 outline-none"
-            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              onDragOver={(event) => {
+                event.preventDefault();
+                setIsDraggingImage(true);
+              }}
+              onDragLeave={() => setIsDraggingImage(false)}
+              onDrop={handleDrop}
+              className={`flex min-h-[170px] w-full flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed px-4 py-5 text-center ${
+                isDraggingImage
+                  ? 'border-[var(--accent-strong)] bg-[rgba(122,31,62,0.08)]'
+                  : 'border-[var(--line)] bg-white'
+              }`}
+            >
+              {imageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={imageUrl} alt="Prévia do aviso" className="h-24 w-full rounded-xl object-cover" />
+              ) : (
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--surface-strong)] text-[var(--muted)]">
+                  <ImagePlus size={22} />
+                </div>
+              )}
+              <div>
+                <p className="font-semibold">Arraste uma imagem para o aviso</p>
+                <p className="mt-1 text-sm text-[var(--muted)]">ou clique para escolher</p>
+              </div>
+            </button>
+            {imageUrl ? (
+              <button
+                type="button"
+                onClick={() => setImageUrl('')}
+                className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-white px-4 py-2 text-sm text-[var(--danger)]"
+              >
+                <Trash2 size={16} /> Remover imagem
+              </button>
+            ) : null}
             {message ? (
               <div className="rounded-2xl bg-[rgba(122,31,62,0.1)] px-4 py-3 text-sm text-[var(--accent-strong)]">
                 {message}

@@ -11,6 +11,7 @@ interface RepertoireSongRow {
   bpm: number | null;
   duration_seconds?: number | null;
   youtube_url: string | null;
+  cifra_url?: string | null;
   category: string;
   tags: string[] | null;
   created_at: string;
@@ -28,7 +29,7 @@ function isSchemaMismatch(error: unknown) {
 
 export async function fetchRepertoireLibrary() {
   const extendedSelect =
-    'id, name, artist, musical_key, bpm, duration_seconds, youtube_url, category, tags, created_at';
+    'id, name, artist, musical_key, bpm, duration_seconds, youtube_url, cifra_url, category, tags, created_at';
   const baseSelect = 'id, name, musical_key, bpm, youtube_url, category, tags, created_at';
 
   let rows: RepertoireSongRow[] = [];
@@ -67,6 +68,7 @@ export async function fetchRepertoireLibrary() {
     bpm: song.bpm,
     durationSeconds: song.duration_seconds ?? null,
     youtubeUrl: song.youtube_url,
+    cifraUrl: song.cifra_url ?? null,
     position: index,
     category: song.category,
     lastPlayed: song.created_at.slice(0, 10),
@@ -82,6 +84,7 @@ export async function insertRepertoireSong(payload: RepertoireSongInput, created
     bpm: payload.bpm ?? null,
     duration_seconds: payload.durationSeconds ?? null,
     youtube_url: payload.youtubeUrl?.trim() ? payload.youtubeUrl.trim() : null,
+    cifra_url: payload.cifraUrl?.trim() ? payload.cifraUrl.trim() : null,
     category: payload.category.trim(),
     tags: payload.tags,
     created_by: createdBy,

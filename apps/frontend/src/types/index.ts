@@ -121,6 +121,7 @@ export interface MinistrySongView extends SongDto {
   tags: string[];
   artist?: string;
   durationSeconds?: number | null;
+  cifraUrl?: string | null;
 }
 
 export interface RepertoireSongInput {
@@ -131,6 +132,7 @@ export interface RepertoireSongInput {
   bpm?: number | null;
   durationSeconds?: number | null;
   youtubeUrl?: string;
+  cifraUrl?: string;
   category: string;
   tags: string[];
 }

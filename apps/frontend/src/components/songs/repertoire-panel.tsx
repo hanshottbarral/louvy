@@ -3,12 +3,13 @@
 import {
   ArrowDown,
   ArrowUp,
+  FileMusic,
   ExternalLink,
   Pencil,
   PlusCircle,
   Search,
   Trash2,
-  WandSparkles,
+  Youtube,
 } from 'lucide-react';
 import { FormEvent, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { AppRole } from '@louvy/shared';
@@ -31,6 +32,7 @@ export function RepertoirePanel() {
   const removeSongFromSchedule = useAppStore((state) => state.removeSongFromSchedule);
   const reorderSongs = useAppStore((state) => state.reorderSongs);
   const updateScheduleSongArrangement = useAppStore((state) => state.updateScheduleSongArrangement);
+  const deleteRepertoireSong = useAppStore((state) => state.deleteRepertoireSong);
   const currentUser = useAppStore((state) => state.currentUser);
   const authMessage = useAppStore((state) => state.authMessage);
   const isCreatingRepertoireSong = useAppStore((state) => state.isCreatingRepertoireSong);
@@ -44,6 +46,7 @@ export function RepertoirePanel() {
   const [bpm, setBpm] = useState('');
   const [duration, setDuration] = useState('');
   const [youtubeUrl, setYoutubeUrl] = useState('');
+  const [cifraUrl, setCifraUrl] = useState('');
   const [category, setCategory] = useState('Geral');
   const [tags, setTags] = useState('');
   const [editingSongId, setEditingSongId] = useState<string | null>(null);
@@ -86,6 +89,19 @@ export function RepertoirePanel() {
     currentUser?.role === AppRole.ADMIN || Boolean(targetMemberCanManageSetlist);
   const targetPlaylistUrl = youtubePlaylistUrl(targetSchedule?.songs.map((song) => song.youtubeUrl) ?? []);
 
+  useEffect(() => {
+    const normalizedUrl = youtubeUrl.trim();
+    if (!normalizedUrl || normalizedUrl === lastAutofilledUrl.current) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      void handleAutofillFromYoutube({ silentIfMissing: true });
+    }, 700);
+
+    return () => window.clearTimeout(timeout);
+  }, [youtubeUrl]);
+
   const resetComposer = () => {
     setEditingSongId(null);
     setName('');
@@ -94,6 +110,7 @@ export function RepertoirePanel() {
     setBpm('');
     setDuration('');
     setYoutubeUrl('');
+    setCifraUrl('');
     setCategory('Geral');
     setTags('');
     setAutofillMessage('');
@@ -113,6 +130,7 @@ export function RepertoirePanel() {
     setBpm(song.bpm ? String(song.bpm) : '');
     setDuration(song.durationSeconds ? formatDuration(song.durationSeconds) : '');
     setYoutubeUrl(song.youtubeUrl ?? '');
+    setCifraUrl(song.cifraUrl ?? '');
     setCategory(prettifyChurchText(song.category) || 'Geral');
     setTags(song.tags.map((tag) => normalizeTagLabel(tag)).join(', '));
     setAutofillMessage('Você está editando uma música já cadastrada.');
@@ -169,7 +187,11 @@ export function RepertoirePanel() {
       setKey(payload.key || '');
       setBpm(payload.bpm ? String(payload.bpm) : '');
       setDuration(payload.durationSeconds ? formatDuration(payload.durationSeconds) : '');
+      setCifraUrl(payload.cifraUrl || '');
       setTags((payload.tags ?? []).map((tag) => normalizeTagLabel(tag)).join(', '));
+      if (!category.trim() || category === 'Geral') {
+        setCategory(normalizeTagLabel(payload.tags?.[0] ?? 'Geral') || 'Geral');
+      }
       lastAutofilledUrl.current = normalizedUrl;
       setAutofillMessage('Dados puxados do link. Tags sugeridas automaticamente; ajuste o que precisar antes de salvar.');
     } catch {
@@ -190,6 +212,7 @@ export function RepertoirePanel() {
       bpm: bpm ? Number(bpm) : null,
       durationSeconds: parseDurationInput(duration),
       youtubeUrl,
+      cifraUrl,
       category,
       tags: tags
         .split(',')
@@ -282,24 +305,14 @@ export function RepertoirePanel() {
                         lastAutofilledUrl.current = '';
                       }
                     }}
-                    onBlur={() => {
-                      if (!name.trim()) {
-                        void handleAutofillFromYoutube({ silentIfMissing: true });
-                      }
-                    }}
                     placeholder="Link do YouTube"
                     className="rounded-2xl border border-[var(--line)] bg-white px-4 py-3 outline-none md:col-span-2"
                   />
-                  <div className="md:col-span-2 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--line)] bg-white px-4 py-3">
-                    <div className="text-sm text-[var(--muted)]">
-                      Cole o link e puxe título, artista, duração, tom e BPM para revisar antes de salvar.
-                    </div>
-                    <button type="button" onClick={() => void handleAutofillFromYoutube()} disabled={isAutofilling} className="rounded-full bg-[var(--foreground)] px-4 py-2 text-sm text-white disabled:opacity-60">
-                      <span className="inline-flex items-center gap-2">
-                        <WandSparkles size={16} />
-                        {isAutofilling ? 'Lendo link...' : 'Preencher pelo link'}
-                      </span>
-                    </button>
+                  <input value={cifraUrl} onChange={(event) => setCifraUrl(event.target.value)} placeholder="Link da cifra" className="rounded-2xl border border-[var(--line)] bg-white px-4 py-3 outline-none md:col-span-2" />
+                  <div className="md:col-span-2 rounded-2xl border border-[var(--line)] bg-white px-4 py-3 text-sm text-[var(--muted)]">
+                    {isAutofilling
+                      ? 'Buscando YouTube, Cifra Club, SongBPM e Multitracks Brasil...'
+                      : 'Cole o link do YouTube e o preenchimento acontece automaticamente.'}
                   </div>
                   <input value={tags} onChange={(event) => setTags(event.target.value)} placeholder="Tags separadas por vírgula" className="rounded-2xl border border-[var(--line)] bg-white px-4 py-3 outline-none md:col-span-2" />
                   {autofillMessage ? (
@@ -343,28 +356,6 @@ export function RepertoirePanel() {
                       {song.durationSeconds ? ` • ${formatDuration(song.durationSeconds)}` : ''}
                     </p>
                   </div>
-                  <div className="flex items-center gap-1">
-                    {song.youtubeUrl ? (
-                      <button
-                        type="button"
-                        onClick={() => window.open(song.youtubeUrl ?? '', '_blank', 'noopener,noreferrer')}
-                        className="rounded-full border border-[var(--line)] p-2 text-[var(--muted)]"
-                        title="Ouvir versão no YouTube"
-                      >
-                        <ExternalLink size={16} />
-                      </button>
-                    ) : null}
-                    {currentUser?.role === AppRole.ADMIN ? (
-                      <button
-                        type="button"
-                        onClick={() => openSongForEditing(song.id)}
-                        className="rounded-full border border-[var(--line)] p-2 text-[var(--muted)]"
-                        title="Editar música"
-                      >
-                        <Pencil size={16} />
-                      </button>
-                    ) : null}
-                  </div>
                 </div>
 
                 <div className="mt-3 flex flex-wrap gap-2">
@@ -375,15 +366,54 @@ export function RepertoirePanel() {
                   ))}
                 </div>
 
-                <div className="mt-4 flex items-center justify-between gap-3 text-sm text-[var(--muted)]">
-                  <span>Última vez: {song.lastPlayed ? formatScheduleDate(song.lastPlayed) : 'nunca'}</span>
+                <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-[var(--muted)]">
+                  {currentUser?.role === AppRole.ADMIN ? (
+                    <button
+                      type="button"
+                      onClick={() => openSongForEditing(song.id)}
+                      className="rounded-full border border-[var(--line)] bg-white p-2 text-[var(--muted)]"
+                      title="Editar música"
+                    >
+                      <Pencil size={16} />
+                    </button>
+                  ) : null}
+                  {song.youtubeUrl ? (
+                    <button
+                      type="button"
+                      onClick={() => window.open(song.youtubeUrl ?? '', '_blank', 'noopener,noreferrer')}
+                      className="rounded-full border border-[var(--line)] bg-white p-2 text-red-600"
+                      title="Ouvir no YouTube"
+                    >
+                      <Youtube size={16} />
+                    </button>
+                  ) : null}
+                  {song.cifraUrl ? (
+                    <button
+                      type="button"
+                      onClick={() => window.open(song.cifraUrl ?? '', '_blank', 'noopener,noreferrer')}
+                      className="rounded-full border border-[var(--line)] bg-white p-2 text-[var(--accent-strong)]"
+                      title="Abrir cifra"
+                    >
+                      <FileMusic size={16} />
+                    </button>
+                  ) : null}
+                  {currentUser?.role === AppRole.ADMIN ? (
+                    <button
+                      type="button"
+                      onClick={() => void deleteRepertoireSong(song.id)}
+                      className="rounded-full border border-[var(--line)] bg-white p-2 text-[var(--danger)]"
+                      title="Excluir música"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  ) : null}
                   <button
                     type="button"
                     onClick={() =>
                       targetSchedule ? void addSongToSchedule(targetSchedule.id, song.id) : undefined
                     }
                     disabled={!targetSchedule || !canManageTargetSetlist || alreadyInTarget}
-                    className="flex items-center gap-2 rounded-full bg-[var(--foreground)] px-3 py-2 text-white disabled:opacity-40"
+                    className="ml-auto flex items-center gap-2 rounded-full bg-[var(--foreground)] px-3 py-2 text-white disabled:opacity-40"
                   >
                     <PlusCircle size={16} /> {alreadyInTarget ? 'Já adicionada' : 'Adicionar'}
                   </button>

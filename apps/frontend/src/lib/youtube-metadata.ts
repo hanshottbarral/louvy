@@ -5,6 +5,7 @@ export interface YoutubeMetadata {
   key?: string;
   bpm?: number | null;
   tags?: string[];
+  cifraUrl?: string;
 }
 
 export function extractYoutubeVideoId(url: string) {
@@ -74,6 +75,13 @@ export function suggestTagsFromYoutubeText(text: string) {
     [/\b(celebra[cç][aã]o|celebration)\b/i, 'Celebração'],
     [/\b(ofert[oó]rio|oferta)\b/i, 'Ofertório'],
     [/\b(comunh[aã]o|ceia)\b/i, 'Comunhão'],
+    [/\b(gl[oó]ria|exaltado|exalta[cç][aã]o|magnificado)\b/i, 'Exaltação'],
+    [/\b(santo|santidade)\b/i, 'Santidade'],
+    [/\b(gra[cç]a|favor)\b/i, 'Graça'],
+    [/\b(cruz|sangue|calv[aá]rio)\b/i, 'Cruz'],
+    [/\b(esp[ií]rito|fogo)\b/i, 'Espírito Santo'],
+    [/\b(poder|milagre)\b/i, 'Poder'],
+    [/\b(alegria|festa|celebra)\b/i, 'Celebração'],
   ];
 
   for (const [pattern, tag] of rules) {

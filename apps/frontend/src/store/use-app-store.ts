@@ -87,6 +87,7 @@ interface AppState {
     declineReason?: string;
   }) => Promise<void>;
   saveRepertoireSong: (payload: RepertoireSongInput) => Promise<string | undefined>;
+  deleteRepertoireSong: (songId: string) => Promise<void>;
   reorderSongs: (scheduleId: string, songIds: string[]) => Promise<void>;
   addSongToSchedule: (scheduleId: string, songId: string) => Promise<void>;
   removeSongFromSchedule: (scheduleId: string, scheduleSongId: string) => Promise<void>;
@@ -982,11 +983,6 @@ export const useAppStore = create<AppState>((set, get) => ({
       return undefined;
     }
 
-    if (!payload.name.trim() || !payload.key.trim() || !payload.category.trim()) {
-      set({ authMessage: 'Preencha nome, tom e categoria da música.' });
-      return undefined;
-    }
-
     if (currentUser.role !== AppRole.ADMIN) {
       set({ authMessage: 'Apenas administradores podem editar o repertório geral.' });
       return undefined;
@@ -994,7 +990,9 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     const normalizedPayload = {
       ...payload,
-      category: normalizeTagLabel(payload.category),
+      name: payload.name.trim() || 'Nova música',
+      key: payload.key.trim() || 'C',
+      category: normalizeTagLabel(payload.category || 'Geral') || 'Geral',
       tags: payload.tags.map((tag) => normalizeTagLabel(tag)).filter(Boolean),
     };
 
@@ -1017,6 +1015,30 @@ export const useAppStore = create<AppState>((set, get) => ({
       set({ authMessage: error instanceof Error ? error.message : 'Não consegui salvar esta música.' });
       return undefined;
     }
+  },
+  deleteRepertoireSong: async (songId) => {
+    const currentUser = get().currentUser;
+    if (!currentUser) {
+      return;
+    }
+
+    if (currentUser.role !== AppRole.ADMIN) {
+      set({ authMessage: 'Apenas administradores podem editar o repertório geral.' });
+      return;
+    }
+
+    const { error } = await supabase
+      .from('repertoire_songs')
+      .update({ is_active: false })
+      .eq('id', songId);
+
+    if (error) {
+      set({ authMessage: error.message });
+      return;
+    }
+
+    await get().refreshData();
+    set({ authMessage: 'Música removida do repertório.' });
   },
   reorderSongs: async (scheduleId, songIds) => {
     const currentUser = get().currentUser;
