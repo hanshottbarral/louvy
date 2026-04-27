@@ -87,7 +87,7 @@ export function DashboardShell() {
             <div className="p-6">
               <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Escalas</p>
               <h2 className="mt-2 text-2xl">Entrou. Agora estou carregando suas escalas...</h2>
-              <div className="mt-6 grid gap-3 xl:grid-cols-[320px_minmax(0,1.15fr)_420px]">
+              <div className="mt-6 grid gap-3 xl:grid-cols-[300px_minmax(0,1.2fr)_430px]">
                 <div className="glass min-h-[220px] rounded-3xl p-4 opacity-60" />
                 <div className="glass min-h-[420px] rounded-3xl p-4 opacity-60" />
                 <div className="glass min-h-[420px] rounded-3xl p-4 opacity-60" />
@@ -161,7 +161,7 @@ export function DashboardShell() {
                 </div>
               </div>
 
-              <div className="grid gap-3 p-3 xl:grid-cols-[320px_minmax(0,1.15fr)_420px]">
+              <div className="grid gap-3 p-3 xl:grid-cols-[300px_minmax(0,1.2fr)_430px]">
                 <div className="space-y-3">
                   <ScheduleEditorPanel schedule={schedule} />
                   <MembersPanel schedule={schedule} />

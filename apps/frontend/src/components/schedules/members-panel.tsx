@@ -52,8 +52,6 @@ export function MembersPanel({ schedule }: { schedule: ScheduleView }) {
         : undefined,
     [availabilityBlocks, schedule.date, schedule.time, selectedUserId],
   );
-  const needsVocalRange = role === InstrumentRole.VOCAL;
-  const selectedMemberHasVocalRange = Boolean(selectedMemberProfile?.vocalRanges.length);
 
   useEffect(() => {
     if (!selectedUserId && availableMembers.length > 0) {
@@ -157,13 +155,13 @@ export function MembersPanel({ schedule }: { schedule: ScheduleView }) {
                   ))}
                 </select>
               </div>
-              {role === InstrumentRole.VOCAL && selectedMemberProfile?.vocalRanges.length ? (
+              {role === InstrumentRole.VOCAL && (selectedMemberProfile?.vocalRanges.length ?? 0) > 1 ? (
                 <select
                   value={selectedVocalRange}
                   onChange={(event) => setSelectedVocalRange(event.target.value as VocalRange)}
                   className="rounded-2xl border border-[var(--line)] bg-white px-4 py-3 outline-none"
                 >
-                  {selectedMemberProfile.vocalRanges.map((range) => (
+                  {(selectedMemberProfile?.vocalRanges ?? []).map((range) => (
                     <option key={range} value={range}>
                       {vocalRangeLabel[range]}
                     </option>
@@ -181,21 +179,11 @@ export function MembersPanel({ schedule }: { schedule: ScheduleView }) {
               </label>
               <button
                 type="submit"
-                disabled={
-                  !selectedUserId ||
-                  allowedRoles.length === 0 ||
-                  !!selectedConflict ||
-                  (needsVocalRange && !selectedMemberHasVocalRange)
-                }
+                disabled={!selectedUserId || allowedRoles.length === 0 || !!selectedConflict}
                 className="rounded-2xl bg-[var(--foreground)] px-4 py-3 text-sm text-white disabled:opacity-60"
               >
                 Adicionar na escala
               </button>
-              {needsVocalRange && !selectedMemberHasVocalRange ? (
-                <p className="rounded-2xl border border-[var(--line)] bg-white px-4 py-3 text-sm text-[var(--muted)]">
-                  Para escalar essa pessoa no vocal, cadastre pelo menos uma classificação vocal na aba Membros.
-                </p>
-              ) : null}
               {selectedConflict ? (
                 <p className="rounded-2xl border border-[var(--line)] bg-white px-4 py-3 text-sm text-[var(--danger)]">
                   Essa pessoa está indisponível nesta data. Motivo: {selectedConflict.reason}

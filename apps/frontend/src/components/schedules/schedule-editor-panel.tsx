@@ -133,15 +133,15 @@ export function ScheduleEditorPanel({ schedule }: { schedule: ScheduleView }) {
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
           <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Planejamento</p>
-          <h3 className="text-xl">Criar e editar escala</h3>
+          <h3 className="text-xl">Escala</h3>
         </div>
         <button
           type="button"
           onClick={() => void createNewSchedule()}
           disabled={!canManageSchedules}
-          className="rounded-full bg-[var(--foreground)] px-4 py-2 text-sm text-white disabled:opacity-60"
+          className="rounded-full bg-[var(--foreground)] px-3 py-2 text-sm text-white disabled:opacity-60"
         >
-          Nova escala
+          Nova
         </button>
       </div>
 
@@ -151,13 +151,13 @@ export function ScheduleEditorPanel({ schedule }: { schedule: ScheduleView }) {
         </div>
       ) : null}
 
-      <form id={`schedule-editor-form-${schedule.id}`} className="space-y-4" onSubmit={handleSubmit}>
+      <form id={`schedule-editor-form-${schedule.id}`} className="space-y-3" onSubmit={handleSubmit}>
         <label className="block">
           <span className="mb-2 block text-sm text-[var(--muted)]">Título da escala</span>
           <input
             value={title}
             onChange={(event) => setTitle(event.target.value)}
-            className="w-full rounded-2xl border border-[var(--line)] bg-[var(--surface-strong)] px-4 py-3 outline-none"
+            className="w-full rounded-2xl border border-[var(--line)] bg-[var(--surface-strong)] px-4 py-2.5 outline-none"
           />
         </label>
 
@@ -168,7 +168,7 @@ export function ScheduleEditorPanel({ schedule }: { schedule: ScheduleView }) {
               type="date"
               value={date}
               onChange={(event) => setDate(event.target.value)}
-              className="w-full rounded-2xl border border-[var(--line)] bg-[var(--surface-strong)] px-4 py-3 outline-none"
+              className="w-full rounded-2xl border border-[var(--line)] bg-[var(--surface-strong)] px-4 py-2.5 outline-none"
             />
           </label>
           <label className="block">
@@ -177,19 +177,19 @@ export function ScheduleEditorPanel({ schedule }: { schedule: ScheduleView }) {
               type="time"
               value={time}
               onChange={(event) => setTime(event.target.value)}
-              className="w-full rounded-2xl border border-[var(--line)] bg-[var(--surface-strong)] px-4 py-3 outline-none"
+              className="w-full rounded-2xl border border-[var(--line)] bg-[var(--surface-strong)] px-4 py-2.5 outline-none"
             />
           </label>
         </div>
 
         <div className="grid gap-3 md:grid-cols-2">
-          <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-strong)] p-3">
+          <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-strong)] p-2.5">
             <p className="flex items-center gap-2 text-sm font-semibold">
               <CalendarDays size={16} /> Dia da semana
             </p>
             <p className="mt-1 text-sm capitalize text-[var(--muted)]">{getWeekdayLabel(date)}</p>
           </div>
-          <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-strong)] p-3">
+          <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-strong)] p-2.5">
             <p className="flex items-center gap-2 text-sm font-semibold">
               <CalendarRange size={16} /> Dia do mês
             </p>
@@ -202,7 +202,7 @@ export function ScheduleEditorPanel({ schedule }: { schedule: ScheduleView }) {
           <textarea
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
-            rows={4}
+            rows={3}
             className="w-full rounded-2xl border border-[var(--line)] bg-[var(--surface-strong)] px-4 py-3 outline-none"
           />
         </label>
