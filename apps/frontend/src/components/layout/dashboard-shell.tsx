@@ -5,7 +5,9 @@ import { Bell, CalendarClock, Music2, UserRound } from 'lucide-react';
 import { AuthPanel } from '@/components/auth/auth-panel';
 import { CalendarPanel } from '@/components/calendar/calendar-panel';
 import { ChatPanel } from '@/components/chat/chat-panel';
+import { FellowshipPanel } from '@/components/fellowship/fellowship-panel';
 import { MemberDirectoryPanel } from '@/components/members/member-directory-panel';
+import { NoticesPanel } from '@/components/notices/notices-panel';
 import { RepertoirePanel } from '@/components/songs/repertoire-panel';
 import { Sidebar } from '@/components/layout/sidebar';
 import { ScheduleEditorPanel } from '@/components/schedules/schedule-editor-panel';
@@ -38,7 +40,7 @@ export function DashboardShell() {
       time: '19:00',
       eventType: ScheduleEventType.SERVICE,
       eventLabel: 'Culto da noite',
-      notes: 'Comece ajustando equipe, repertorio e observacoes.',
+      notes: 'Comece ajustando equipe, repertório e observações.',
     });
   };
 
@@ -59,6 +61,10 @@ export function DashboardShell() {
             <div className="p-3">
               <RepertoirePanel />
             </div>
+          ) : activeSection === 'notices' ? (
+            <div className="p-3">
+              <NoticesPanel />
+            </div>
           ) : activeSection === 'members' ? (
             <div className="p-3">
               <MemberDirectoryPanel />
@@ -66,6 +72,10 @@ export function DashboardShell() {
           ) : activeSection === 'calendar' ? (
             <div className="p-3">
               <CalendarPanel />
+            </div>
+          ) : activeSection === 'fellowship' ? (
+            <div className="p-3">
+              <FellowshipPanel />
             </div>
           ) : isHydratingApp && !schedule ? (
             <div className="p-6">
@@ -82,7 +92,7 @@ export function DashboardShell() {
               <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Escalas</p>
               <h2 className="mt-2 text-2xl">Nenhuma escala criada ainda.</h2>
               <p className="mt-2 max-w-[640px] text-sm text-[var(--muted)]">
-                Assim que a primeira escala existir, ela aparece aqui com equipe, repertorio e chat.
+                Assim que a primeira escala existir, ela aparece aqui com equipe, repertório e chat.
               </p>
               {authMessage ? (
                 <p className="mt-4 rounded-2xl bg-[rgba(122,31,62,0.1)] px-4 py-3 text-sm text-[var(--accent-strong)]">
@@ -99,7 +109,7 @@ export function DashboardShell() {
                 </button>
               ) : (
                 <p className="mt-6 text-sm text-[var(--muted)]">
-                  Sua conta esta como musico no banco. Depois de aplicar o patch de membros no Supabase, marque seu perfil como admin para liberar a criacao da primeira escala.
+                  Sua conta está como músico no banco. Depois de aplicar o patch de membros no Supabase, marque seu perfil como admin para liberar a criação da primeira escala.
                 </p>
               )}
             </div>
@@ -116,7 +126,7 @@ export function DashboardShell() {
                       <CalendarClock size={16} /> {schedule.time}
                     </span>
                     <span className="glass flex items-center gap-2 rounded-full px-3 py-2">
-                      <Music2 size={16} /> {schedule.songs.length} musicas
+                      <Music2 size={16} /> {schedule.songs.length} músicas
                     </span>
                     <span className="glass flex items-center gap-2 rounded-full px-3 py-2">
                       <UserRound size={16} /> {schedule.memberCount} membros

@@ -1,11 +1,13 @@
 'use client';
 
 import {
+  BellRing,
   BookAudio,
   Calendar,
   CalendarDays,
   ChevronRight,
   LogOut,
+  MessageCircleHeart,
   Plus,
   UserCircle2,
   Users2,
@@ -34,7 +36,7 @@ export function Sidebar() {
       time: '19:00',
       eventType: ScheduleEventType.SERVICE,
       eventLabel: 'Culto da noite',
-      notes: 'Ajuste detalhes, equipe e repertorio.',
+      notes: 'Ajuste detalhes, equipe e repertório.',
     });
   };
 
@@ -52,13 +54,13 @@ export function Sidebar() {
       <div className="mb-5 flex items-center justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.18em] text-white/55">Louvy</p>
-          <h1 className="mt-1 text-2xl">Ministerio</h1>
+          <h1 className="mt-1 text-2xl">Ministério</h1>
         </div>
         {activeSection === 'schedules' || activeSection === 'repertoire' ? (
           <button
             onClick={contextualCreate}
             className="rounded-full border border-white/12 p-2 text-white/90"
-            title={activeSection === 'repertoire' ? 'Cadastrar musica' : 'Criar escala'}
+            title={activeSection === 'repertoire' ? 'Cadastrar música' : 'Criar escala'}
           >
             <Plus size={18} />
           </button>
@@ -66,6 +68,15 @@ export function Sidebar() {
       </div>
 
       <div className="mb-4 grid grid-cols-2 gap-2">
+        <button
+          onClick={() => setActiveSection('notices')}
+          className={cn(
+            'flex items-center justify-center gap-2 rounded-2xl px-3 py-3 text-sm',
+            activeSection === 'notices' ? 'bg-white text-[var(--foreground)]' : 'bg-white/5',
+          )}
+        >
+          <BellRing size={16} /> Avisos
+        </button>
         <button
           onClick={() => setActiveSection('schedules')}
           className={cn(
@@ -82,7 +93,7 @@ export function Sidebar() {
             activeSection === 'repertoire' ? 'bg-white text-[var(--foreground)]' : 'bg-white/5',
           )}
         >
-          <BookAudio size={16} /> Repertorio
+          <BookAudio size={16} /> Repertório
         </button>
         <button
           onClick={() => setActiveSection('members')}
@@ -100,7 +111,16 @@ export function Sidebar() {
             activeSection === 'calendar' ? 'bg-white text-[var(--foreground)]' : 'bg-white/5',
           )}
         >
-          <CalendarDays size={16} /> Calendario
+          <CalendarDays size={16} /> Calendário
+        </button>
+        <button
+          onClick={() => setActiveSection('fellowship')}
+          className={cn(
+            'flex items-center justify-center gap-2 rounded-2xl px-3 py-3 text-sm',
+            activeSection === 'fellowship' ? 'bg-white text-[var(--foreground)]' : 'bg-white/5',
+          )}
+        >
+          <MessageCircleHeart size={16} /> Comunhão
         </button>
       </div>
 
@@ -123,7 +143,7 @@ export function Sidebar() {
                 <p className="mt-1 text-xs opacity-70">
                   {getWeekdayLabel(schedule.date)} • {formatScheduleDate(schedule.date)}
                 </p>
-                <p className="mt-1 text-xs opacity-60">{schedule.eventLabel}</p>
+                <p className="mt-1 text-xs opacity-60">{schedule.time}</p>
               </div>
               <div className="flex items-center gap-2">
                 {!!schedule.unreadCount && (

@@ -27,6 +27,7 @@ interface ProfileRow {
 interface MemberProfileRow {
   user_id: string;
   notes: string | null;
+  birthday?: string | null;
 }
 
 interface AssignmentRow {
@@ -62,8 +63,11 @@ function isMissingRelationError(error: unknown) {
   return (
     code === '42P01' ||
     code === 'PGRST205' ||
+    code === '42703' ||
+    code === 'PGRST204' ||
     message.toLowerCase().includes('relation') ||
-    message.toLowerCase().includes('does not exist')
+    message.toLowerCase().includes('does not exist') ||
+    message.toLowerCase().includes('column')
   );
 }
 
@@ -128,6 +132,7 @@ function mergeDirectory(
 ) {
   const localMetadata = new Map(readLocalMemberMetadata().map((entry) => [entry.userId, entry]));
   const remoteNotes = new Map(remoteProfiles.map((entry) => [entry.user_id, entry.notes ?? undefined]));
+  const remoteBirthdays = new Map(remoteProfiles.map((entry) => [entry.user_id, entry.birthday ?? null]));
   const remoteAssignmentsMap = new Map<string, MinistryAssignment[]>();
   const remoteVocalMap = new Map<string, VocalRange[]>();
 
@@ -157,6 +162,7 @@ function mergeDirectory(
       assignments: local?.assignments ?? remoteAssignmentsMap.get(profile.id) ?? [],
       vocalRanges: local?.vocalRanges ?? remoteVocalMap.get(profile.id) ?? [],
       notes: local?.notes ?? remoteNotes.get(profile.id),
+      birthday: local?.birthday ?? remoteBirthdays.get(profile.id) ?? null,
     };
   });
 }
@@ -174,7 +180,7 @@ export async function loadMemberDirectory() {
   const baseProfiles = (profiles ?? []) as ProfileRow[];
 
   const [memberProfilesResult, assignmentsResult] = await Promise.all([
-    supabase.from('member_profiles').select('user_id, notes'),
+    supabase.from('member_profiles').select('user_id, notes, birthday'),
     supabase.from('member_assignments').select('user_id, assignment, vocal_range'),
   ]);
 
@@ -217,12 +223,24 @@ export async function saveMemberDirectoryProfile(currentUser: SessionUser, paylo
     {
       user_id: payload.userId,
       notes: payload.notes?.trim() || null,
+      birthday: payload.birthday || null,
     },
     { onConflict: 'user_id' },
   );
 
   if (notesError) {
-    if (!isMissingRelationError(notesError)) {
+    if (notesError.code === '42703' || notesError.code === 'PGRST204') {
+      const legacyNotesResult = await supabase.from('member_profiles').upsert(
+        {
+          user_id: payload.userId,
+          notes: payload.notes?.trim() || null,
+        },
+        { onConflict: 'user_id' },
+      );
+      if (legacyNotesResult.error && !isMissingRelationError(legacyNotesResult.error)) {
+        remoteErrors.push(legacyNotesResult.error.message);
+      }
+    } else if (!isMissingRelationError(notesError)) {
       remoteErrors.push(notesError.message);
     }
   } else {
@@ -336,6 +354,10 @@ export async function loadAvailabilityBlocks() {
 }
 
 export async function saveAvailabilityBlock(currentUser: SessionUser, payload: AvailabilityBlockInput) {
+  if (!payload.reason.trim()) {
+    throw new Error('O motivo da indisponibilidade é obrigatório.');
+  }
+
   const id = payload.id ?? crypto.randomUUID();
   const block: AvailabilityBlock = {
     id,

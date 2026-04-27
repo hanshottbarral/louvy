@@ -24,7 +24,7 @@ export function AudioRecorder({
       setErrorMessage(null);
 
       if (!navigator.mediaDevices?.getUserMedia) {
-        throw new Error('Gravacao de audio nao suportada neste navegador.');
+        throw new Error('Gravação de áudio não suportada neste navegador.');
       }
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -45,7 +45,7 @@ export function AudioRecorder({
           const result = await uploadAudio(blob);
           await onAudioReady(result.url);
         } catch {
-          setErrorMessage('Nao consegui preparar esse audio para envio.');
+          setErrorMessage('Não consegui preparar esse áudio para envio.');
         } finally {
           stream.getTracks().forEach((track) => track.stop());
         }
@@ -54,7 +54,7 @@ export function AudioRecorder({
       mediaRecorder.start();
       setRecording(true);
     } catch {
-      setErrorMessage('Permita o microfone para gravar audio no chat.');
+      setErrorMessage('Permita o microfone para gravar áudio no chat.');
       setRecording(false);
     }
   };

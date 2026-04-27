@@ -38,6 +38,7 @@ export function MemberDirectoryPanel() {
   const [assignments, setAssignments] = useState<MinistryAssignment[]>([]);
   const [vocalRanges, setVocalRanges] = useState<VocalRange[]>([]);
   const [notes, setNotes] = useState('');
+  const [birthday, setBirthday] = useState('');
 
   useEffect(() => {
     void loadMemberDirectory();
@@ -80,6 +81,7 @@ export function MemberDirectoryPanel() {
     setAssignments(selectedMember.assignments);
     setVocalRanges(selectedMember.vocalRanges);
     setNotes(selectedMember.notes ?? '');
+    setBirthday(selectedMember.birthday ?? '');
   }, [selectedMember]);
 
   const canEdit = currentUser?.role === AppRole.ADMIN;
@@ -119,6 +121,7 @@ export function MemberDirectoryPanel() {
       assignments,
       vocalRanges,
       notes,
+      birthday: birthday || null,
     });
   };
 
@@ -140,7 +143,7 @@ export function MemberDirectoryPanel() {
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Buscar por nome ou funcao"
+            placeholder="Buscar por nome ou função"
             className="min-w-0 flex-1 bg-transparent outline-none"
           />
         </div>
@@ -171,7 +174,7 @@ export function MemberDirectoryPanel() {
                       : 'bg-[var(--surface-strong)] text-[var(--muted)]',
                   )}
                 >
-                  {member.appRole === AppRole.ADMIN ? 'Admin' : 'Usuario'}
+                  {member.appRole === AppRole.ADMIN ? 'Admin' : 'Usuário'}
                 </span>
               </div>
 
@@ -186,7 +189,7 @@ export function MemberDirectoryPanel() {
                     </span>
                   ))
                 ) : (
-                  <span className="text-xs text-[var(--muted)]">Sem funcoes definidas ainda.</span>
+                  <span className="text-xs text-[var(--muted)]">Sem funções definidas ainda.</span>
                 )}
               </div>
             </button>
@@ -218,7 +221,7 @@ export function MemberDirectoryPanel() {
 
             {!canEdit ? (
               <div className="rounded-2xl bg-[var(--surface-strong)] px-4 py-3 text-sm text-[var(--muted)]">
-                Voce consegue consultar as funcoes de todo mundo aqui, mas apenas administradores editam cargos e ministerios.
+                Você consegue consultar as funções de todo mundo aqui, mas apenas administradores editam cargos e ministérios.
               </div>
             ) : null}
 
@@ -226,7 +229,7 @@ export function MemberDirectoryPanel() {
               <div className="rounded-3xl border border-[var(--line)] p-4">
                 <div className="flex items-center gap-2">
                   <ShieldCheck size={18} />
-                  <h4 className="text-lg">Permissao no app</h4>
+                  <h4 className="text-lg">Permissão no app</h4>
                 </div>
                 <div className="mt-4 grid grid-cols-2 gap-2">
                   {[AppRole.ADMIN, AppRole.MUSICIAN].map((roleOption) => (
@@ -243,7 +246,7 @@ export function MemberDirectoryPanel() {
                         !canEdit && 'opacity-70',
                       )}
                     >
-                      {roleOption === AppRole.ADMIN ? 'Admin' : 'Usuario normal'}
+                      {roleOption === AppRole.ADMIN ? 'Admin' : 'Usuário normal'}
                     </button>
                   ))}
                 </div>
@@ -252,20 +255,30 @@ export function MemberDirectoryPanel() {
               <div className="rounded-3xl border border-[var(--line)] p-4">
                 <div className="flex items-center gap-2">
                   <UserCog2 size={18} />
-                  <h4 className="text-lg">Anotacoes</h4>
+                  <h4 className="text-lg">Anotações</h4>
                 </div>
+                <label className="mt-4 block">
+                  <span className="mb-2 block text-sm text-[var(--muted)]">Aniversário</span>
+                  <input
+                    type="date"
+                    value={birthday}
+                    onChange={(event) => setBirthday(event.target.value)}
+                    disabled={!canEdit}
+                    className="w-full rounded-2xl border border-[var(--line)] bg-[var(--surface-strong)] px-4 py-3 outline-none disabled:opacity-70"
+                  />
+                </label>
                 <textarea
                   value={notes}
                   onChange={(event) => setNotes(event.target.value)}
                   disabled={!canEdit}
-                  placeholder="Pontos fortes, observacoes de timbre, facilidade com arranjos, lideranca, etc."
+                  placeholder="Pontos fortes, observações de timbre, facilidade com arranjos, liderança, etc."
                   className="mt-4 min-h-[132px] w-full rounded-2xl border border-[var(--line)] bg-[var(--surface-strong)] px-4 py-3 outline-none disabled:opacity-70"
                 />
               </div>
             </div>
 
             <div className="rounded-3xl border border-[var(--line)] p-4">
-              <h4 className="text-lg">Frentes do ministerio</h4>
+              <h4 className="text-lg">Frentes do ministério</h4>
               <p className="mt-2 text-sm text-[var(--muted)]">
                 Marque tudo o que essa pessoa pode cobrir quando uma nova escala for montada.
               </p>
@@ -292,7 +305,7 @@ export function MemberDirectoryPanel() {
 
             {assignments.includes('VOCAL') ? (
               <div className="rounded-3xl border border-[var(--line)] p-4">
-                <h4 className="text-lg">Classificacao vocal</h4>
+                <h4 className="text-lg">Classificação vocal</h4>
                 <div className="mt-4 flex flex-wrap gap-2">
                   {vocalRangeOptions.map((range) => (
                     <button

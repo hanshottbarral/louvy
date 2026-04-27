@@ -12,9 +12,9 @@ export const instrumentRoleLabel: Record<InstrumentRole, string> = {
   BASS: 'Baixo',
   DRUMS: 'Bateria',
   KEYS: 'Teclado',
-  VIOLAO: 'Violao',
+  VIOLAO: 'Violão',
   DIRETOR_MUSICAL: 'Diretor musical',
-  MINISTRO_RESPONSAVEL: 'Ministro responsavel',
+  MINISTRO_RESPONSAVEL: 'Ministro responsável',
   VS: 'VS',
 };
 
@@ -36,14 +36,14 @@ export const ministryAssignmentLabel: Record<MinistryAssignment, string> = {
   BAIXO: 'Baixo',
   GUITARRA: 'Guitarra',
   TECLADO: 'Teclado',
-  VIOLAO: 'Violao',
+  VIOLAO: 'Violão',
   DIRETOR_MUSICAL: 'Diretor musical',
-  MINISTRO_RESPONSAVEL: 'Ministro responsavel',
+  MINISTRO_RESPONSAVEL: 'Ministro responsável',
   VS: 'VS',
 };
 
 export const vocalRangeLabel: Record<VocalRange, string> = {
-  BARITONO: 'Baritono',
+  BARITONO: 'Barítono',
   TENOR: 'Tenor',
   CONTRALTO: 'Contralto',
   SOPRANO: 'Soprano',
@@ -52,15 +52,17 @@ export const vocalRangeLabel: Record<VocalRange, string> = {
 
 export const availabilityTimeSlotLabel: Record<AvailabilityTimeSlot, string> = {
   ANY: 'Dia inteiro',
-  MORNING: 'Manha',
+  MORNING: 'Manhã',
   AFTERNOON: 'Tarde',
   NIGHT: 'Noite',
 };
 
 export const availabilityRecurrenceLabel: Record<AvailabilityRecurrence, string> = {
-  NONE: 'Sem recorrencia',
+  NONE: 'Não repetir',
   WEEKLY: 'Toda semana',
-  FIRST_SUNDAY_MONTHLY: 'Todo primeiro domingo',
-  SUNDAY_MORNING_WEEKLY: 'Todo domingo de manha',
-  SUNDAY_NIGHT_WEEKLY: 'Todo domingo a noite',
+  FIRST_SUNDAY_MONTHLY: 'Todo mês no primeiro domingo',
+  MONTHLY_BY_DAY: 'Todo mês no dia selecionado',
+  BIWEEKLY: 'A cada 15 dias',
+  SUNDAY_MORNING_WEEKLY: 'Todo domingo de manhã',
+  SUNDAY_NIGHT_WEEKLY: 'Todo domingo à noite',
 };

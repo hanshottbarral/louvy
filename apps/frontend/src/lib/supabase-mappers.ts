@@ -30,6 +30,7 @@ interface ScheduleMemberRow {
   role: keyof typeof InstrumentRole;
   status: keyof typeof MemberStatus;
   decline_reason?: string | null;
+  can_manage_setlist?: boolean | null;
 }
 
 interface ScheduleSongRow {
@@ -40,6 +41,7 @@ interface ScheduleSongRow {
   bpm: number | null;
   youtube_url: string | null;
   position: number;
+  lead_vocalist_user_id?: string | null;
 }
 
 interface MessageRow {
@@ -81,6 +83,7 @@ export function mapSchedules(args: {
         role: InstrumentRole[member.role],
         status: MemberStatus[member.status],
         declineReason: member.decline_reason ?? null,
+        canManageSetlist: member.can_manage_setlist ?? false,
       }));
 
     const scheduleSongs = args.songs
@@ -93,6 +96,10 @@ export function mapSchedules(args: {
         bpm: song.bpm,
         youtubeUrl: song.youtube_url,
         position: song.position,
+        leadSingerUserId: song.lead_vocalist_user_id ?? null,
+        leadSingerName: song.lead_vocalist_user_id
+          ? profileMap.get(song.lead_vocalist_user_id)?.name ?? null
+          : null,
       }));
 
     return {

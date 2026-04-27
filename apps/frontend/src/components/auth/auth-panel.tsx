@@ -31,12 +31,12 @@ export function AuthPanel() {
       <section className="glass w-full max-w-[460px] rounded-[28px] p-6">
         <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Louvy</p>
         <h1 className="mt-3 text-3xl">
-          {authMode === 'login' ? 'Entrar no ministerio' : 'Criar acesso'}
+          {authMode === 'login' ? 'Entrar no ministério' : 'Criar acesso'}
         </h1>
         <p className="mt-2 text-sm text-[var(--muted)]">
           {authMode === 'login'
-            ? 'Use email e senha para abrir escalas, repertorio e chat.'
-            : 'O primeiro cadastro pode ser promovido para lideranca direto no painel do Supabase.'}
+            ? 'Use email e senha para abrir escalas, repertório e chat.'
+            : 'O primeiro cadastro pode ser promovido para liderança direto no painel do Supabase.'}
         </p>
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
@@ -98,7 +98,7 @@ export function AuthPanel() {
           className="mt-4 w-full text-sm text-[var(--accent-strong)]"
         >
           {authMode === 'login'
-            ? 'Ainda nao tem acesso? Criar conta'
+            ? 'Ainda não tem acesso? Criar conta'
             : 'Ja tem conta? Voltar para login'}
         </button>
       </section>

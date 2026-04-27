@@ -70,7 +70,7 @@ export function RepertoirePanel() {
       const payload = (await response.json()) as YoutubeMetadata & { error?: string };
 
       if (!response.ok) {
-        setAutofillMessage(payload.error ?? 'Nao consegui ler esse video agora.');
+        setAutofillMessage(payload.error ?? 'Não consegui ler esse vídeo agora.');
         return;
       }
 
@@ -82,7 +82,7 @@ export function RepertoirePanel() {
       lastAutofilledUrl.current = normalizedUrl;
       setAutofillMessage('Dados puxados do link. Ajuste o que precisar antes de salvar.');
     } catch {
-      setAutofillMessage('Nao consegui consultar o link agora. Tente de novo em instantes.');
+      setAutofillMessage('Não consegui consultar o link agora. Tente de novo em instantes.');
     } finally {
       setIsAutofilling(false);
     }
@@ -129,7 +129,7 @@ export function RepertoirePanel() {
             <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Ministerio</p>
             <h2 className="mt-2 text-3xl leading-none">Repertorio completo</h2>
             <p className="mt-2 max-w-2xl text-sm text-[var(--muted)]">
-              Consulte todas as musicas da equipe, filtre por categoria e injete uma faixa direto na escala atual.
+              Consulte todas as músicas da equipe, filtre por categoria e injete uma faixa direto na escala atual.
             </p>
           </div>
           <div className="glass flex min-w-[280px] items-center gap-2 rounded-full px-4 py-3">
@@ -149,7 +149,7 @@ export function RepertoirePanel() {
           <div className="mb-4 flex items-center justify-between">
             <div>
               <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Biblioteca</p>
-              <h3 className="text-xl">{filteredSongs.length} musicas cadastradas</h3>
+              <h3 className="text-xl">{filteredSongs.length} músicas cadastradas</h3>
             </div>
             <span className="rounded-full bg-[var(--surface-strong)] px-3 py-1 text-sm">
               Repertorio vivo
@@ -160,7 +160,7 @@ export function RepertoirePanel() {
             <div className="mb-4 rounded-2xl border border-[var(--line)] bg-[var(--surface-strong)] p-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="font-semibold">Cadastrar musica</p>
+                  <p className="font-semibold">Cadastrar música</p>
                   <p className="text-sm text-[var(--muted)]">
                     Use o botao + desta aba para abrir este formulario quando quiser.
                   </p>
@@ -170,7 +170,7 @@ export function RepertoirePanel() {
                   onClick={isCreatingRepertoireSong ? closeRepertoireComposer : openRepertoireComposer}
                   className="rounded-full bg-[var(--foreground)] px-4 py-2 text-sm text-white"
                 >
-                  {isCreatingRepertoireSong ? 'Fechar' : 'Nova musica'}
+                  {isCreatingRepertoireSong ? 'Fechar' : 'Nova música'}
                 </button>
               </div>
 
@@ -179,13 +179,13 @@ export function RepertoirePanel() {
                   <input
                     value={name}
                     onChange={(event) => setName(event.target.value)}
-                    placeholder="Nome da musica"
+                    placeholder="Nome da música"
                     className="rounded-2xl border border-[var(--line)] bg-white px-4 py-3 outline-none"
                   />
                   <input
                     value={artist}
                     onChange={(event) => setArtist(event.target.value)}
-                    placeholder="Artista / ministerio"
+                    placeholder="Artista / ministério"
                     className="rounded-2xl border border-[var(--line)] bg-white px-4 py-3 outline-none"
                   />
                   <input
@@ -266,7 +266,7 @@ export function RepertoirePanel() {
                       type="submit"
                       className="rounded-2xl bg-[var(--foreground)] px-5 py-3 text-sm text-white"
                     >
-                      Salvar musica
+                      Salvar música
                     </button>
                   </div>
                 </form>
@@ -329,8 +329,8 @@ export function RepertoirePanel() {
           <h3 className="mt-2 text-xl">{selectedSchedule?.title ?? 'Nenhuma escala'}</h3>
           <p className="mt-2 text-sm text-[var(--muted)]">
             {selectedSchedule
-              ? `Selecionada para receber musicas em ${formatScheduleDate(selectedSchedule.date)}.`
-              : 'Volte para a aba de escalas e selecione uma escala para receber musicas deste repertorio.'}
+              ? `Selecionada para receber músicas em ${formatScheduleDate(selectedSchedule.date)}.`
+              : 'Volte para a aba de escalas e selecione uma escala para receber músicas deste repertório.'}
           </p>
 
           {selectedSchedule ? (

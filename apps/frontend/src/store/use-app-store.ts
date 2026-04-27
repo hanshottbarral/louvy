@@ -9,6 +9,7 @@ import {
   saveAvailabilityBlock,
   saveMemberDirectoryProfile,
 } from '@/lib/member-calendar';
+import { findAvailabilityConflict } from '@/lib/availability';
 import { sendNotificationEmail } from '@/lib/api';
 import { fetchRepertoireLibrary, insertRepertoireSong } from '@/lib/repertoire';
 import { supabase } from '@/lib/supabase';
@@ -74,6 +75,7 @@ interface AppState {
     userId: string;
     role: InstrumentRole;
     status: MemberStatus;
+    canManageSetlist?: boolean;
   }) => Promise<void>;
   removeMemberFromSchedule: (scheduleMemberId: string) => Promise<void>;
   respondToScheduleMember: (payload: {
@@ -85,6 +87,12 @@ interface AppState {
   reorderSongs: (scheduleId: string, songIds: string[]) => Promise<void>;
   addSongToSchedule: (scheduleId: string, songId: string) => Promise<void>;
   removeSongFromSchedule: (scheduleId: string, scheduleSongId: string) => Promise<void>;
+  updateScheduleSongArrangement: (payload: {
+    scheduleId: string;
+    scheduleSongId: string;
+    key: string;
+    leadSingerUserId?: string | null;
+  }) => Promise<void>;
   sendTextMessage: (scheduleId: string, content: string) => Promise<void>;
   sendAudioMessage: (scheduleId: string, audioUrl: string) => Promise<void>;
 }
@@ -145,6 +153,17 @@ async function createInAppNotification(payload: {
   }
 }
 
+function isSchemaMismatch(error: unknown) {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+
+  const code = 'code' in error && typeof error.code === 'string' ? error.code : '';
+  const message = 'message' in error && typeof error.message === 'string' ? error.message : '';
+
+  return code === '42703' || code === 'PGRST204' || message.toLowerCase().includes('column');
+}
+
 async function fetchDataForUser(currentUser: SessionUser) {
   let scheduleIds: string[] = [];
 
@@ -169,7 +188,7 @@ async function fetchDataForUser(currentUser: SessionUser) {
   }
 
   const scheduleMembersSelect =
-    'id, schedule_id, user_id, role, status, decline_reason';
+    'id, schedule_id, user_id, role, status, decline_reason, can_manage_setlist';
 
   const fetchScheduleMembers = async () => {
     if (scheduleIds.length === 0) {
@@ -207,14 +226,34 @@ async function fetchDataForUser(currentUser: SessionUser) {
 
   const membersPromise = fetchScheduleMembers();
 
-  const songsPromise =
-    scheduleIds.length > 0
-      ? supabase
-          .from('schedule_songs')
-          .select('id, schedule_id, name, musical_key, bpm, youtube_url, position')
-          .in('schedule_id', scheduleIds)
-          .order('position', { ascending: true })
-      : Promise.resolve({ data: [], error: null });
+  const fetchScheduleSongs = async () => {
+    if (scheduleIds.length === 0) {
+      return { data: [], error: null };
+    }
+
+    const extendedResult = await supabase
+      .from('schedule_songs')
+      .select('id, schedule_id, name, musical_key, bpm, youtube_url, position, lead_vocalist_user_id')
+      .in('schedule_id', scheduleIds)
+      .order('position', { ascending: true });
+
+    if (
+      extendedResult.error &&
+      (extendedResult.error.code === '42703' ||
+        extendedResult.error.code === 'PGRST204' ||
+        extendedResult.error.message.toLowerCase().includes('column'))
+    ) {
+      return supabase
+        .from('schedule_songs')
+        .select('id, schedule_id, name, musical_key, bpm, youtube_url, position')
+        .in('schedule_id', scheduleIds)
+        .order('position', { ascending: true });
+    }
+
+    return extendedResult;
+  };
+
+  const songsPromise = fetchScheduleSongs();
 
   const notificationsPromise = supabase
     .from('notifications')
@@ -295,7 +334,7 @@ let bootstrapRequestId = 0;
 let bootstrapInFlight: Promise<void> | null = null;
 
 export const useAppStore = create<AppState>((set, get) => ({
-  activeSection: 'schedules',
+  activeSection: 'notices',
   authMode: 'login',
   authMessage: undefined,
   currentUser: null,
@@ -767,7 +806,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     await get().refreshData();
     set({ authMessage: 'Escala removida.' });
   },
-  addMemberToSchedule: async ({ scheduleId, userId, role, status }) => {
+  addMemberToSchedule: async ({ scheduleId, userId, role, status, canManageSetlist }) => {
     const currentUser = get().currentUser;
     if (!currentUser) {
       return;
@@ -779,20 +818,51 @@ export const useAppStore = create<AppState>((set, get) => ({
       return;
     }
 
-    const { error } = await supabase.from('schedule_members').insert({
+    const schedule = get().schedules.find((entry) => entry.id === scheduleId);
+    if (schedule) {
+      const conflict = findAvailabilityConflict(
+        get().availabilityBlocks,
+        userId,
+        schedule.date,
+        schedule.time,
+      );
+
+      if (conflict) {
+        const memberName =
+          get().memberDirectory.find((entry) => entry.userId === userId)?.name ?? 'Esse membro';
+        set({
+          authMessage: `${memberName} está indisponível neste dia. Motivo: ${conflict.reason}`,
+        });
+        return;
+      }
+    }
+
+    const insertPayload = {
       schedule_id: scheduleId,
       user_id: userId,
       role,
       status,
       decline_reason: null,
-    });
+      can_manage_setlist: canManageSetlist ?? false,
+    };
+    let { error } = await supabase.from('schedule_members').insert(insertPayload);
+
+    if (error && isSchemaMismatch(error)) {
+      const legacyResult = await supabase.from('schedule_members').insert({
+        schedule_id: scheduleId,
+        user_id: userId,
+        role,
+        status,
+        decline_reason: null,
+      });
+      error = legacyResult.error;
+    }
 
     if (error) {
       set({ authMessage: error.message });
       return;
     }
 
-    const schedule = get().schedules.find((entry) => entry.id === scheduleId);
     const profile = get().memberDirectory.find((entry) => entry.userId === userId);
 
     if (profile) {
@@ -929,6 +999,18 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
   reorderSongs: async (scheduleId, songIds) => {
+    const currentUser = get().currentUser;
+    if (!currentUser) {
+      return;
+    }
+
+    const schedule = get().schedules.find((item) => item.id === scheduleId);
+    const memberPermission = schedule?.members.find((member) => member.userId === currentUser.id);
+    if (currentUser.role !== AppRole.ADMIN && !memberPermission?.canManageSetlist) {
+      set({ authMessage: 'Você não tem permissão para reorganizar o repertório desta escala.' });
+      return;
+    }
+
     const updates = songIds.map((songId, index) =>
       supabase.from('schedule_songs').update({ position: index }).eq('id', songId),
     );
@@ -937,9 +1019,20 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ selectedScheduleId: scheduleId });
   },
   addSongToSchedule: async (scheduleId, songId) => {
+    const currentUser = get().currentUser;
+    if (!currentUser) {
+      return;
+    }
+
     const librarySong = get().repertoire.find((song) => song.id === songId);
     const schedule = get().schedules.find((item) => item.id === scheduleId);
     if (!librarySong || !schedule) {
+      return;
+    }
+
+    const memberPermission = schedule.members.find((member) => member.userId === currentUser.id);
+    if (currentUser.role !== AppRole.ADMIN && !memberPermission?.canManageSetlist) {
+      set({ authMessage: 'Você não tem permissão para adicionar músicas nesta escala.' });
       return;
     }
 
@@ -967,9 +1060,11 @@ export const useAppStore = create<AppState>((set, get) => ({
       return;
     }
 
+    const schedule = get().schedules.find((item) => item.id === scheduleId);
+    const memberPermission = schedule?.members.find((member) => member.userId === currentUser.id);
     const syncedUser = await syncCurrentUserProfile(currentUser);
-    if (syncedUser.role !== AppRole.ADMIN) {
-      set({ authMessage: 'Apenas administradores podem remover musicas da escala.' });
+    if (syncedUser.role !== AppRole.ADMIN && !memberPermission?.canManageSetlist) {
+      set({ authMessage: 'Você não tem permissão para remover músicas desta escala.' });
       return;
     }
 
@@ -980,7 +1075,47 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
 
     await get().refreshData();
-    set({ selectedScheduleId: scheduleId, authMessage: 'Musica removida da escala.' });
+    set({ selectedScheduleId: scheduleId, authMessage: 'Música removida da escala.' });
+  },
+  updateScheduleSongArrangement: async ({ scheduleId, scheduleSongId, key, leadSingerUserId }) => {
+    const currentUser = get().currentUser;
+    if (!currentUser) {
+      return;
+    }
+
+    const schedule = get().schedules.find((item) => item.id === scheduleId);
+    const memberPermission = schedule?.members.find((member) => member.userId === currentUser.id);
+    const syncedUser = await syncCurrentUserProfile(currentUser);
+    if (syncedUser.role !== AppRole.ADMIN && !memberPermission?.canManageSetlist) {
+      set({ authMessage: 'Você não tem permissão para editar a ordem musical desta escala.' });
+      return;
+    }
+
+    let { error } = await supabase
+      .from('schedule_songs')
+      .update({
+        musical_key: key.trim(),
+        lead_vocalist_user_id: leadSingerUserId || null,
+      })
+      .eq('id', scheduleSongId);
+
+    if (error && isSchemaMismatch(error)) {
+      const legacyResult = await supabase
+        .from('schedule_songs')
+        .update({
+          musical_key: key.trim(),
+        })
+        .eq('id', scheduleSongId);
+      error = legacyResult.error;
+    }
+
+    if (error) {
+      set({ authMessage: error.message });
+      return;
+    }
+
+    await get().refreshData();
+    set({ selectedScheduleId: scheduleId, authMessage: 'Música da escala atualizada.' });
   },
   sendTextMessage: async (scheduleId, content) => {
     const currentUser = get().currentUser;

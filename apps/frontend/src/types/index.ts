@@ -7,7 +7,13 @@ import {
   SongDto,
 } from '@louvy/shared';
 
-export type AppSection = 'schedules' | 'repertoire' | 'members' | 'calendar';
+export type AppSection =
+  | 'notices'
+  | 'schedules'
+  | 'repertoire'
+  | 'members'
+  | 'calendar'
+  | 'fellowship';
 export type AuthMode = 'login' | 'register';
 
 export type MinistryAssignment =
@@ -29,6 +35,8 @@ export type AvailabilityRecurrence =
   | 'NONE'
   | 'WEEKLY'
   | 'FIRST_SUNDAY_MONTHLY'
+  | 'MONTHLY_BY_DAY'
+  | 'BIWEEKLY'
   | 'SUNDAY_MORNING_WEEKLY'
   | 'SUNDAY_NIGHT_WEEKLY';
 
@@ -39,6 +47,7 @@ export interface ScheduleMemberView {
   role: InstrumentRole;
   status: MemberStatus;
   declineReason?: string | null;
+  canManageSetlist?: boolean;
 }
 
 export interface NotificationView {
@@ -57,6 +66,7 @@ export interface MemberDirectoryProfile {
   assignments: MinistryAssignment[];
   vocalRanges: VocalRange[];
   notes?: string;
+  birthday?: string | null;
 }
 
 export interface MemberDirectoryInput {
@@ -65,6 +75,7 @@ export interface MemberDirectoryInput {
   assignments: MinistryAssignment[];
   vocalRanges: VocalRange[];
   notes?: string;
+  birthday?: string | null;
 }
 
 export interface AvailabilityBlock {

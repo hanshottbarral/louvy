@@ -36,7 +36,7 @@ export async function uploadAudio(file: Blob) {
 
   if (error) {
     throw new Error(
-      'Nao consegui enviar o audio para o armazenamento. Confira o bucket chat-audio e as policies do Supabase.',
+      'Não consegui enviar o áudio para o armazenamento. Confira o bucket chat-audio e as policies do Supabase.',
     );
   }
 
@@ -64,7 +64,7 @@ export async function sendNotificationEmail(payload: {
   });
 
   if (!response.ok) {
-    throw new Error('Nao consegui disparar o email desta notificacao.');
+    throw new Error('Não consegui disparar o email desta notificação.');
   }
 
   return response.json();

@@ -48,13 +48,13 @@ export function ChatPanel({ schedule }: { schedule: ScheduleView }) {
         <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Chat</p>
         <h3 className="text-xl">Conversa da escala</h3>
         <p className="mt-1 text-sm text-[var(--muted)]">
-          {typingUser ? `${typingUser} esta digitando...` : 'Mensagens e audios em tempo real'}
+          {typingUser ? `${typingUser} está digitando...` : 'Mensagens e áudios em tempo real'}
         </p>
       </div>
 
       <div className="flex-1 space-y-3 overflow-y-auto rounded-3xl border border-[var(--line)] bg-[var(--surface-strong)] p-3">
         {loadingScheduleMessages && schedule.messages.length === 0 ? (
-          <p className="text-sm text-[var(--muted)]">Carregando historico do chat...</p>
+          <p className="text-sm text-[var(--muted)]">Carregando histórico do chat...</p>
         ) : null}
         {schedule.messages.map((chatMessage) => {
           const mine = chatMessage.user.id === currentUser?.id;
@@ -67,8 +67,8 @@ export function ChatPanel({ schedule }: { schedule: ScheduleView }) {
                 {chatMessage.user.name}
               </p>
               {chatMessage.type === MessageType.AUDIO ? (
-                <audio controls preload="metadata" className="max-w-full">
-                  <source src={chatMessage.audioUrl ?? ''} />
+                <audio controls preload="metadata" src={chatMessage.audioUrl ?? ''} className="max-w-full">
+                  Seu navegador não conseguiu reproduzir este áudio.
                 </audio>
               ) : (
                 <p className="text-sm">{chatMessage.content}</p>

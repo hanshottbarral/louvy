@@ -118,14 +118,14 @@ export function ScheduleEditorPanel({ schedule }: { schedule: ScheduleView }) {
       time: '19:00',
       eventType: ScheduleEventType.SERVICE,
       eventLabel: 'Culto da noite',
-      notes: 'Defina equipe, setlist e observacoes.',
+      notes: 'Defina equipe, setlist e observações.',
     });
 
     if (nextId) {
       setTitle('Nova escala');
       setDate(nextDate);
       setTime('19:00');
-      setNotes('Defina equipe, setlist e observacoes.');
+      setNotes('Defina equipe, setlist e observações.');
     }
   };
 
@@ -148,13 +148,13 @@ export function ScheduleEditorPanel({ schedule }: { schedule: ScheduleView }) {
 
       {!canManageSchedules ? (
         <div className="mb-4 rounded-2xl bg-[var(--surface-strong)] px-4 py-3 text-sm text-[var(--muted)]">
-          Seu perfil ainda nao esta como admin no banco. Sem isso, a criacao e a edicao de escalas ficam bloqueadas.
+          Seu perfil ainda não está como admin no banco. Sem isso, a criação e a edição de escalas ficam bloqueadas.
         </div>
       ) : null}
 
       <form className="space-y-4" onSubmit={handleSubmit}>
         <label className="block">
-          <span className="mb-2 block text-sm text-[var(--muted)]">Titulo da escala</span>
+          <span className="mb-2 block text-sm text-[var(--muted)]">Título da escala</span>
           <input
             value={title}
             onChange={(event) => setTitle(event.target.value)}
@@ -173,7 +173,7 @@ export function ScheduleEditorPanel({ schedule }: { schedule: ScheduleView }) {
             />
           </label>
           <label className="block">
-            <span className="mb-2 block text-sm text-[var(--muted)]">Horario</span>
+            <span className="mb-2 block text-sm text-[var(--muted)]">Horário</span>
             <input
               type="time"
               value={time}
@@ -192,14 +192,14 @@ export function ScheduleEditorPanel({ schedule }: { schedule: ScheduleView }) {
           </div>
           <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-strong)] p-3">
             <p className="flex items-center gap-2 text-sm font-semibold">
-              <CalendarRange size={16} /> Dia do mes
+              <CalendarRange size={16} /> Dia do mês
             </p>
             <p className="mt-1 text-sm capitalize text-[var(--muted)]">{getMonthDayLabel(date)}</p>
           </div>
         </div>
 
         <label className="block">
-          <span className="mb-2 block text-sm text-[var(--muted)]">Observacoes</span>
+          <span className="mb-2 block text-sm text-[var(--muted)]">Observações</span>
           <textarea
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
@@ -210,7 +210,7 @@ export function ScheduleEditorPanel({ schedule }: { schedule: ScheduleView }) {
 
         {canManageSchedules ? (
           <p className="text-xs text-[var(--muted)]">
-            {isAutosaving ? 'Salvando alteracoes...' : 'Autosave ativo. Suas alteracoes sao salvas automaticamente.'}
+            {isAutosaving ? 'Salvando alterações...' : 'Autosave ativo. Suas alterações são salvas automaticamente.'}
           </p>
         ) : null}
 

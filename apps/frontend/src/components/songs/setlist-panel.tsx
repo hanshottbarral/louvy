@@ -29,10 +29,13 @@ export function SetlistPanel({ schedule }: { schedule: ScheduleView }) {
   const reorderSongs = useAppStore((state) => state.reorderSongs);
   const addSongToSchedule = useAppStore((state) => state.addSongToSchedule);
   const removeSongFromSchedule = useAppStore((state) => state.removeSongFromSchedule);
+  const updateScheduleSongArrangement = useAppStore((state) => state.updateScheduleSongArrangement);
   const [selectedSongId, setSelectedSongId] = useState('');
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
   const embedUrl = youtubeEmbedUrl(schedule.songs[0]?.youtubeUrl);
-  const canManageSongs = currentUser?.role === AppRole.ADMIN;
+  const currentScheduleMember = schedule.members.find((member) => member.userId === currentUser?.id);
+  const canManageSongs =
+    currentUser?.role === AppRole.ADMIN || Boolean(currentScheduleMember?.canManageSetlist);
   const availableSongs = useMemo(
     () => repertoire.filter((song) => !schedule.songs.some((entry) => entry.id === song.id)),
     [repertoire, schedule.songs],
@@ -55,7 +58,7 @@ export function SetlistPanel({ schedule }: { schedule: ScheduleView }) {
       <div className="mb-4 flex items-center justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Setlist</p>
-          <h3 className="text-xl">Musicas</h3>
+          <h3 className="text-xl">Músicas</h3>
         </div>
         <span className="rounded-full bg-[var(--surface-strong)] px-3 py-1 text-sm">
           Arraste para ordenar
@@ -64,14 +67,14 @@ export function SetlistPanel({ schedule }: { schedule: ScheduleView }) {
 
       {canManageSongs ? (
         <div className="mb-4 rounded-2xl border border-[var(--line)] bg-[var(--surface-strong)] p-3">
-          <p className="text-sm font-semibold">Adicionar musica dentro da escala</p>
+          <p className="text-sm font-semibold">Adicionar música dentro da escala</p>
           <div className="mt-3 flex flex-col gap-2 md:flex-row">
             <select
               value={selectedSongId}
               onChange={(event) => setSelectedSongId(event.target.value)}
               className="min-w-0 flex-1 rounded-2xl border border-[var(--line)] bg-white px-4 py-3 outline-none"
             >
-              <option value="">Selecione uma musica do repertorio</option>
+              <option value="">Selecione uma música do repertório</option>
               {availableSongs.map((song) => (
                 <option key={song.id} value={song.id}>
                   {song.name}
@@ -117,7 +120,19 @@ export function SetlistPanel({ schedule }: { schedule: ScheduleView }) {
                 name={song.name}
                 tone={song.key}
                 bpm={song.bpm}
+                leadSingerUserId={song.leadSingerUserId}
+                leadSingerName={song.leadSingerName}
+                scheduleId={schedule.id}
+                singerOptions={schedule.members}
                 canManageSongs={canManageSongs}
+                onSave={(songId, nextKey, leadSingerUserId) =>
+                  void updateScheduleSongArrangement({
+                    scheduleId: schedule.id,
+                    scheduleSongId: songId,
+                    key: nextKey,
+                    leadSingerUserId,
+                  })
+                }
                 onRemove={(songId) => void removeSongFromSchedule(schedule.id, songId)}
               />
             ))}
@@ -133,17 +148,29 @@ function SortableSongCard({
   name,
   tone,
   bpm,
+  leadSingerUserId,
+  leadSingerName,
+  scheduleId,
+  singerOptions,
   canManageSongs,
+  onSave,
   onRemove,
 }: {
   id: string;
   name: string;
   tone: string;
   bpm?: number | null;
+  leadSingerUserId?: string | null;
+  leadSingerName?: string | null;
+  scheduleId: string;
+  singerOptions: ScheduleView['members'];
   canManageSongs: boolean;
+  onSave: (songId: string, key: string, leadSingerUserId?: string | null) => void;
   onRemove: (songId: string) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
+  const [keyValue, setKeyValue] = useState(tone);
+  const [leadSinger, setLeadSinger] = useState(leadSingerUserId ?? '');
 
   return (
     <div
@@ -159,10 +186,50 @@ function SortableSongCard({
       </button>
       <div className="flex-1">
         <p className="font-semibold">{name}</p>
-        <p className="text-sm text-[var(--muted)]">
-          Tom {tone}
-          {bpm ? ` • ${bpm} BPM` : ''}
-        </p>
+        {canManageSongs ? (
+          <div className="mt-2 grid gap-2 md:grid-cols-[120px_minmax(0,1fr)_auto]">
+            <input
+              value={keyValue}
+              onChange={(event) => setKeyValue(event.target.value)}
+              className="rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-sm outline-none"
+              placeholder="Tom"
+            />
+            <select
+              value={leadSinger}
+              onChange={(event) => setLeadSinger(event.target.value)}
+              className="rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-sm outline-none"
+            >
+              <option value="">Definir quem canta</option>
+              {singerOptions
+                .filter((member) => member.role === 'VOCAL')
+                .map((member) => (
+                  <option key={`${scheduleId}-${member.userId}-${member.id}`} value={member.userId}>
+                    {member.userName}
+                  </option>
+                ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => onSave(id, keyValue, leadSinger || null)}
+              className="rounded-xl bg-[var(--foreground)] px-3 py-2 text-sm text-white"
+            >
+              Salvar
+            </button>
+          </div>
+        ) : (
+          <p className="text-sm text-[var(--muted)]">
+            Tom {tone}
+            {leadSingerName ? ` • Voz principal: ${leadSingerName}` : ''}
+            {bpm ? ` • ${bpm} BPM` : ''}
+          </p>
+        )}
+        {canManageSongs ? (
+          <p className="mt-2 text-sm text-[var(--muted)]">
+            Tom atual da escala: {tone}
+            {leadSingerName ? ` • Voz principal atual: ${leadSingerName}` : ''}
+            {bpm ? ` • ${bpm} BPM` : ''}
+          </p>
+        ) : null}
       </div>
       <div className="flex items-center gap-2">
         <button className="rounded-full bg-[var(--accent)] p-2 text-white">

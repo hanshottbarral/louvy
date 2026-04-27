@@ -1,5 +1,6 @@
 import { AppRole, InstrumentRole, MemberStatus } from '@louvy/shared';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { findAvailabilityConflict } from '@/lib/availability';
 import { instrumentRoleLabel, memberStatusLabel } from '@/lib/labels';
 import { getAllowedScheduleRoles } from '@/lib/schedule-roles';
 import { useAppStore } from '@/store/use-app-store';
@@ -15,6 +16,8 @@ export function MembersPanel({ schedule }: { schedule: ScheduleView }) {
   const currentUser = useAppStore((state) => state.currentUser);
   const authMessage = useAppStore((state) => state.authMessage);
   const memberDirectory = useAppStore((state) => state.memberDirectory);
+  const availabilityBlocks = useAppStore((state) => state.availabilityBlocks);
+  const loadAvailabilityBlocks = useAppStore((state) => state.loadAvailabilityBlocks);
   const loadMemberDirectory = useAppStore((state) => state.loadMemberDirectory);
   const addMemberToSchedule = useAppStore((state) => state.addMemberToSchedule);
   const removeMemberFromSchedule = useAppStore((state) => state.removeMemberFromSchedule);
@@ -22,11 +25,13 @@ export function MembersPanel({ schedule }: { schedule: ScheduleView }) {
   const [selectedUserId, setSelectedUserId] = useState('');
   const [role, setRole] = useState<InstrumentRole>(InstrumentRole.VOCAL);
   const [status, setStatus] = useState<MemberStatus>(MemberStatus.PENDING);
+  const [canManageSetlist, setCanManageSetlist] = useState(false);
   const [declineReasonByMemberId, setDeclineReasonByMemberId] = useState<Record<string, string>>({});
 
   useEffect(() => {
     void loadMemberDirectory();
-  }, [loadMemberDirectory]);
+    void loadAvailabilityBlocks();
+  }, [loadAvailabilityBlocks, loadMemberDirectory]);
 
   const canManageMembers = currentUser?.role === AppRole.ADMIN;
   const availableMembers = useMemo(
@@ -37,6 +42,13 @@ export function MembersPanel({ schedule }: { schedule: ScheduleView }) {
   const allowedRoles = useMemo(
     () => getAllowedScheduleRoles(selectedMemberProfile),
     [selectedMemberProfile],
+  );
+  const selectedConflict = useMemo(
+    () =>
+      selectedUserId
+        ? findAvailabilityConflict(availabilityBlocks, selectedUserId, schedule.date, schedule.time)
+        : undefined,
+    [availabilityBlocks, schedule.date, schedule.time, selectedUserId],
   );
 
   useEffect(() => {
@@ -66,6 +78,7 @@ export function MembersPanel({ schedule }: { schedule: ScheduleView }) {
       userId: selectedUserId,
       role,
       status,
+      canManageSetlist,
     });
   };
 
@@ -98,7 +111,7 @@ export function MembersPanel({ schedule }: { schedule: ScheduleView }) {
                     </option>
                   ))
                 ) : (
-                  <option value="">Todos os membros ja estao nesta escala</option>
+                  <option value="">Todos os membros já estão nesta escala</option>
                 )}
               </select>
               <div className="grid grid-cols-2 gap-2">
@@ -125,16 +138,30 @@ export function MembersPanel({ schedule }: { schedule: ScheduleView }) {
                   ))}
                 </select>
               </div>
+              <label className="flex items-center gap-3 rounded-2xl border border-[var(--line)] bg-white px-4 py-3 text-sm">
+                <input
+                  type="checkbox"
+                  checked={canManageSetlist}
+                  onChange={(event) => setCanManageSetlist(event.target.checked)}
+                  className="h-4 w-4"
+                />
+                Permitir que essa pessoa adicione músicas e altere a ordem do setlist
+              </label>
               <button
                 type="submit"
-                disabled={!selectedUserId || allowedRoles.length === 0}
+                disabled={!selectedUserId || allowedRoles.length === 0 || !!selectedConflict}
                 className="rounded-2xl bg-[var(--foreground)] px-4 py-3 text-sm text-white disabled:opacity-60"
               >
                 Adicionar na escala
               </button>
+              {selectedConflict ? (
+                <p className="rounded-2xl border border-[var(--line)] bg-white px-4 py-3 text-sm text-[var(--danger)]">
+                  Essa pessoa está indisponível nesta data. Motivo: {selectedConflict.reason}
+                </p>
+              ) : null}
               {selectedMemberProfile && allowedRoles.length === 0 ? (
                 <p className="rounded-2xl border border-[var(--line)] bg-white px-4 py-3 text-sm text-[var(--muted)]">
-                  Esse membro ainda nao tem uma funcao de escala compativel cadastrada na aba Membros.
+                  Esse membro ainda não tem uma função de escala compatível cadastrada na aba Membros.
                 </p>
               ) : null}
               {authMessage ? (
@@ -155,6 +182,9 @@ export function MembersPanel({ schedule }: { schedule: ScheduleView }) {
               <div>
                 <p className="font-semibold">{member.userName}</p>
                 <p className="text-sm text-[var(--muted)]">{instrumentRoleLabel[member.role]}</p>
+                {member.canManageSetlist ? (
+                  <p className="mt-1 text-xs text-[var(--accent-strong)]">Pode organizar o setlist</p>
+                ) : null}
               </div>
               <div className="flex items-center gap-2">
                 <span className={`rounded-full px-3 py-1 text-xs ${statusClassName[member.status]}`}>

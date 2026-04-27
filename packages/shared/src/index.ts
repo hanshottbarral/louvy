@@ -61,6 +61,8 @@ export interface SongDto {
   bpm?: number | null;
   youtubeUrl?: string | null;
   position: number;
+  leadSingerUserId?: string | null;
+  leadSingerName?: string | null;
 }
 
 export interface ChatMessageDto {
