@@ -54,6 +54,7 @@ interface AppState {
   loadingScheduleMessages: boolean;
   loadedMessageScheduleIds: string[];
   clearAuthMessage: () => void;
+  recoverAdminAccess: () => Promise<void>;
   bootstrap: () => Promise<void>;
   refreshData: () => Promise<void>;
   loadScheduleMessages: (scheduleId: string, options?: { force?: boolean }) => Promise<void>;
@@ -361,6 +362,33 @@ export const useAppStore = create<AppState>((set, get) => ({
   loadingScheduleMessages: false,
   loadedMessageScheduleIds: [],
   clearAuthMessage: () => set({ authMessage: undefined }),
+  recoverAdminAccess: async () => {
+    set({ isLoadingMembers: true, authMessage: undefined });
+
+    try {
+      const { error } = await supabase.rpc('recover_admin_access');
+      if (error) {
+        set({
+          isLoadingMembers: false,
+          authMessage: error.message,
+        });
+        return;
+      }
+
+      await get().bootstrap();
+      await get().loadMemberDirectory({ force: true });
+      set({
+        isLoadingMembers: false,
+        authMessage: 'Seu acesso de admin foi recuperado.',
+      });
+    } catch (error) {
+      set({
+        isLoadingMembers: false,
+        authMessage:
+          error instanceof Error ? error.message : 'Não consegui recuperar o acesso de admin agora.',
+      });
+    }
+  },
   bootstrap: async () => {
     if (bootstrapInFlight) {
       return bootstrapInFlight;

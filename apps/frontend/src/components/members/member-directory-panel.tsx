@@ -3,7 +3,7 @@
 import { AppRole } from '@louvy/shared';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { MinistryBadge } from '@/components/shared/ministry-badge';
-import { Search, ShieldCheck, UserCog2, Users2 } from 'lucide-react';
+import { Crown, Search, ShieldCheck, UserCog2, Users2 } from 'lucide-react';
 import {
   ministryAssignmentLabel,
   vocalRangeLabel,
@@ -33,6 +33,7 @@ export function MemberDirectoryPanel() {
   const isLoadingMembers = useAppStore((state) => state.isLoadingMembers);
   const loadMemberDirectory = useAppStore((state) => state.loadMemberDirectory);
   const saveMemberProfile = useAppStore((state) => state.saveMemberDirectoryProfile);
+  const recoverAdminAccess = useAppStore((state) => state.recoverAdminAccess);
   const [query, setQuery] = useState('');
   const [selectedUserId, setSelectedUserId] = useState('');
   const [appRole, setAppRole] = useState<AppRole>(AppRole.MUSICIAN);
@@ -72,6 +73,7 @@ export function MemberDirectoryPanel() {
   }, [filteredMembers, selectedUserId]);
 
   const selectedMember = memberDirectory.find((member) => member.userId === selectedUserId) ?? filteredMembers[0];
+  const adminCount = memberDirectory.filter((member) => member.appRole === AppRole.ADMIN).length;
 
   useEffect(() => {
     if (!selectedMember) {
@@ -86,6 +88,11 @@ export function MemberDirectoryPanel() {
   }, [selectedMember]);
 
   const canEdit = currentUser?.role === AppRole.ADMIN;
+  const canRecoverAdmin = !canEdit && adminCount === 0 && Boolean(currentUser?.id);
+  const isLastAdminSelection =
+    selectedMember?.appRole === AppRole.ADMIN &&
+    appRole === AppRole.ADMIN &&
+    adminCount <= 1;
 
   const toggleAssignment = (assignment: MinistryAssignment) => {
     setAssignments((currentAssignments) => {
@@ -175,7 +182,7 @@ export function MemberDirectoryPanel() {
                       : 'bg-[var(--surface-strong)] text-[var(--muted)]',
                   )}
                 >
-                  {member.appRole === AppRole.ADMIN ? 'Admin' : 'Usuário'}
+                  {member.appRole === AppRole.ADMIN ? 'Admin' : 'Membro'}
                 </span>
               </div>
 
@@ -225,6 +232,27 @@ export function MemberDirectoryPanel() {
               </div>
             ) : null}
 
+            {canRecoverAdmin ? (
+              <div className="rounded-2xl border border-[rgba(122,31,62,0.2)] bg-[rgba(122,31,62,0.08)] px-4 py-3 text-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-semibold text-[var(--accent-strong)]">Nenhum admin ativo</p>
+                    <p className="mt-1 text-[var(--muted)]">
+                      Seu ministério ficou sem admin. Use este botão para recuperar o acesso da sua conta.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void recoverAdminAccess()}
+                    className="inline-flex items-center gap-2 rounded-full bg-[var(--foreground)] px-4 py-2 text-sm text-white"
+                  >
+                    <Crown size={16} />
+                    Recuperar admin
+                  </button>
+                </div>
+              </div>
+            ) : null}
+
             <div className="grid gap-3 lg:grid-cols-[1.1fr_1.4fr]">
               <div className="rounded-3xl border border-[var(--line)] p-4">
                 <div className="flex items-center gap-2">
@@ -236,7 +264,7 @@ export function MemberDirectoryPanel() {
                     <button
                       key={roleOption}
                       type="button"
-                      disabled={!canEdit}
+                      disabled={!canEdit || (roleOption === AppRole.MUSICIAN && isLastAdminSelection)}
                       onClick={() => setAppRole(roleOption)}
                       className={cn(
                         'rounded-2xl border px-3 py-2.5 text-sm transition',
@@ -244,12 +272,18 @@ export function MemberDirectoryPanel() {
                           ? 'border-[var(--foreground)] bg-[var(--foreground)] text-white'
                           : 'border-[var(--line)] bg-[var(--surface-strong)]',
                         !canEdit && 'opacity-70',
+                        roleOption === AppRole.MUSICIAN && isLastAdminSelection && 'opacity-50',
                       )}
                     >
-                      {roleOption === AppRole.ADMIN ? 'Admin' : 'Usuário normal'}
+                      {roleOption === AppRole.ADMIN ? 'Admin' : 'Membro'}
                     </button>
                   ))}
                 </div>
+                {isLastAdminSelection ? (
+                  <p className="mt-3 text-xs text-[var(--muted)]">
+                    O último admin do ministério não pode ser rebaixado enquanto não existir outro admin.
+                  </p>
+                ) : null}
               </div>
 
               <div className="rounded-3xl border border-[var(--line)] p-4">

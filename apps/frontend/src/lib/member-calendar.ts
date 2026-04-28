@@ -208,6 +208,24 @@ export async function saveMemberDirectoryProfile(currentUser: SessionUser, paylo
   const remoteErrors: string[] = [];
   let rolePersisted = false;
 
+  const { count: adminCount, error: adminCountError } = await supabase
+    .from('profiles')
+    .select('id', { count: 'exact', head: true })
+    .eq('role', AppRole.ADMIN);
+
+  if (adminCountError && !isMissingRelationError(adminCountError)) {
+    remoteErrors.push(adminCountError.message);
+  }
+
+  if (
+    currentUser.role === AppRole.ADMIN &&
+    payload.appRole === AppRole.MUSICIAN &&
+    payload.userId === currentUser.id &&
+    (adminCount ?? 0) <= 1
+  ) {
+    throw new Error('Você não pode remover o último admin do ministério.');
+  }
+
   const { error: roleError } = await supabase
     .from('profiles')
     .update({ role: payload.appRole })

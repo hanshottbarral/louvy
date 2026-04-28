@@ -25,6 +25,12 @@ import {
 import { useAppStore } from '@/store/use-app-store';
 import { YoutubeMetadata } from '@/lib/youtube-metadata';
 
+interface SongSuggestion {
+  title: string;
+  artist?: string;
+  youtubeUrl: string;
+}
+
 export function RepertoirePanel() {
   const repertoire = useAppStore((state) => state.repertoire);
   const schedules = useAppStore((state) => state.schedules);
@@ -55,6 +61,8 @@ export function RepertoirePanel() {
   const [targetScheduleId, setTargetScheduleId] = useState('');
   const [autofillMessage, setAutofillMessage] = useState('');
   const [isAutofilling, setIsAutofilling] = useState(false);
+  const [nameSuggestions, setNameSuggestions] = useState<SongSuggestion[]>([]);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const lastAutofilledUrl = useRef('');
   const autofillPromiseRef = useRef<Promise<YoutubeMetadata | null> | null>(null);
   const deferredQuery = useDeferredValue(query);
@@ -105,6 +113,41 @@ export function RepertoirePanel() {
     return () => window.clearTimeout(timeout);
   }, [youtubeUrl]);
 
+  useEffect(() => {
+    if (!isCreatingRepertoireSong) {
+      setNameSuggestions([]);
+      return;
+    }
+
+    if (youtubeUrl.trim()) {
+      setNameSuggestions([]);
+      return;
+    }
+
+    const searchQuery = [name.trim(), artist.trim()].filter(Boolean).join(' ').trim();
+    if (searchQuery.length < 3) {
+      setNameSuggestions([]);
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      void (async () => {
+        setIsLoadingSuggestions(true);
+        try {
+          const response = await fetch(`/api/song-suggestions?query=${encodeURIComponent(searchQuery)}`);
+          const payload = (await response.json()) as { suggestions?: SongSuggestion[] };
+          setNameSuggestions(payload.suggestions ?? []);
+        } catch {
+          setNameSuggestions([]);
+        } finally {
+          setIsLoadingSuggestions(false);
+        }
+      })();
+    }, 350);
+
+    return () => window.clearTimeout(timeout);
+  }, [artist, isCreatingRepertoireSong, name, youtubeUrl]);
+
   const resetComposer = () => {
     setEditingSongId(null);
     setName('');
@@ -117,6 +160,7 @@ export function RepertoirePanel() {
     setCategory('Geral');
     setTags('');
     setAutofillMessage('');
+    setNameSuggestions([]);
     lastAutofilledUrl.current = '';
     clearAuthMessage();
   };
@@ -138,9 +182,26 @@ export function RepertoirePanel() {
     setCategory(prettifyChurchText(song.category) || 'Geral');
     setTags(song.tags.map((tag) => normalizeTagLabel(tag)).join(', '));
     setAutofillMessage('Você está editando uma música já cadastrada.');
+    setNameSuggestions([]);
     lastAutofilledUrl.current = song.youtubeUrl ?? '';
     clearAuthMessage();
     openRepertoireComposer();
+  };
+
+  const applySuggestion = (suggestion: SongSuggestion) => {
+    setName(suggestion.title);
+    setArtist(suggestion.artist ?? '');
+    setYoutubeUrl(suggestion.youtubeUrl);
+    setNameSuggestions([]);
+    clearAuthMessage();
+
+    window.setTimeout(() => {
+      void handleAutofillFromYoutube({
+        silentIfMissing: true,
+        force: true,
+        urlOverride: suggestion.youtubeUrl,
+      });
+    }, 0);
   };
 
   const moveSong = async (songId: string, direction: 'up' | 'down') => {
@@ -359,6 +420,40 @@ export function RepertoirePanel() {
                 <form onSubmit={handleCreateSong} className="mt-4 grid gap-3 md:grid-cols-2">
                   <input value={name} onChange={(event) => setName(event.target.value)} placeholder="Nome da música" className="rounded-2xl border border-[var(--line)] bg-white px-4 py-3 outline-none" />
                   <input value={artist} onChange={(event) => setArtist(event.target.value)} placeholder="Artista / ministério" className="rounded-2xl border border-[var(--line)] bg-white px-4 py-3 outline-none" />
+                  {!youtubeUrl.trim() ? (
+                    <div className="md:col-span-2 rounded-2xl border border-[var(--line)] bg-[var(--surface-strong)] p-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-sm font-medium">Versões sugeridas</p>
+                        <span className="text-xs text-[var(--muted)]">
+                          {isLoadingSuggestions ? 'Buscando...' : `${nameSuggestions.length} opções`}
+                        </span>
+                      </div>
+                      <div className="mt-3 space-y-2">
+                        {nameSuggestions.length ? (
+                          nameSuggestions.map((suggestion) => (
+                            <button
+                              key={suggestion.youtubeUrl}
+                              type="button"
+                              onClick={() => applySuggestion(suggestion)}
+                              className="flex w-full items-center justify-between gap-3 rounded-2xl border border-[var(--line)] bg-white px-4 py-3 text-left transition hover:border-[var(--foreground)]"
+                            >
+                              <div className="min-w-0">
+                                <p className="truncate font-medium">{suggestion.title}</p>
+                                <p className="truncate text-sm text-[var(--muted)]">
+                                  {suggestion.artist || 'YouTube'}
+                                </p>
+                              </div>
+                              <Youtube size={16} className="shrink-0 text-red-600" />
+                            </button>
+                          ))
+                        ) : (
+                          <p className="text-sm text-[var(--muted)]">
+                            Digite o nome da música para eu sugerir versões do YouTube.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ) : null}
                   <input value={key} onChange={(event) => setKey(event.target.value)} placeholder="Tom" className="rounded-2xl border border-[var(--line)] bg-white px-4 py-3 outline-none" />
                   <input value={bpm} onChange={(event) => setBpm(event.target.value)} placeholder="BPM" inputMode="numeric" className="rounded-2xl border border-[var(--line)] bg-white px-4 py-3 outline-none" />
                   <input value={duration} onChange={(event) => setDuration(event.target.value)} placeholder="Duração (mm:ss)" className="rounded-2xl border border-[var(--line)] bg-white px-4 py-3 outline-none" />
