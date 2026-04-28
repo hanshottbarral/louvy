@@ -1,4 +1,4 @@
-import { InstrumentRole } from '@louvy/shared';
+import { InstrumentRole } from '@korus/shared';
 import { MemberDirectoryProfile, MinistryAssignment } from '@/types';
 
 const assignmentToScheduleRoles: Record<MinistryAssignment, InstrumentRole[]> = {

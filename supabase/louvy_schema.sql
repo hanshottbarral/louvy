@@ -1,4 +1,4 @@
--- Louvy schema for Supabase (PostgreSQL)
+-- KORUS schema for Supabase (PostgreSQL)
 -- Cole este script no SQL Editor do Supabase.
 
 begin;

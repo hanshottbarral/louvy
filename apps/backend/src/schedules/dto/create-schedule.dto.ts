@@ -2,7 +2,7 @@ import {
   InstrumentRole,
   MemberStatus,
   ScheduleEventType,
-} from '@louvy/shared';
+} from '@korus/shared';
 import {
   ArrayMinSize,
   IsArray,

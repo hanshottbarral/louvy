@@ -3,7 +3,7 @@ import {
   MemberStatus,
   MessageType,
   ScheduleEventType,
-} from '@louvy/shared';
+} from '@korus/shared';
 import { MinistrySongView, NotificationView, ScheduleView, VocalRange } from '@/types';
 
 interface ProfileRow {

@@ -11,10 +11,10 @@ RUN npm install
 COPY apps/frontend ./apps/frontend
 COPY packages/shared ./packages/shared
 
-RUN npm run build --workspace @louvy/shared
-RUN npm run build --workspace @louvy/frontend
+RUN npm run build --workspace @korus/shared
+RUN npm run build --workspace @korus/frontend
 
 EXPOSE 3000
 
-CMD ["npm", "run", "start", "--workspace", "@louvy/frontend"]
+CMD ["npm", "run", "start", "--workspace", "@korus/frontend"]
 

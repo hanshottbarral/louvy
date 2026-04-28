@@ -78,7 +78,7 @@ export function AudioRecorder({
         <button
           type="button"
           onClick={startRecording}
-          className="rounded-full bg-[var(--accent)] p-3 text-white"
+          className="rounded-full bg-[var(--accent)] p-3 text-[var(--foreground)]"
         >
           <Mic size={16} />
         </button>

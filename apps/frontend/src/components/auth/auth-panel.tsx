@@ -2,6 +2,7 @@
 
 import { LoaderCircle, LogIn, UserPlus } from 'lucide-react';
 import { FormEvent, useState } from 'react';
+import { KorusWordmark } from '@/components/brand/korus-brand';
 import { useAppStore } from '@/store/use-app-store';
 
 export function AuthPanel() {
@@ -28,14 +29,14 @@ export function AuthPanel() {
 
   return (
     <main className="flex min-h-screen items-center justify-center p-4">
-      <section className="glass w-full max-w-[460px] rounded-[28px] p-6">
-        <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Louvy</p>
-        <h1 className="mt-3 text-3xl">
-          {authMode === 'login' ? 'Entrar no ministério' : 'Criar acesso'}
+      <section className="glass w-full max-w-[500px] rounded-[30px] p-7">
+        <KorusWordmark tone="dark" className="h-auto w-[224px]" />
+        <h1 className="mt-6 text-3xl" data-display="true">
+          {authMode === 'login' ? 'Entrar no workspace' : 'Criar acesso'}
         </h1>
         <p className="mt-2 text-sm text-[var(--muted)]">
           {authMode === 'login'
-            ? 'Use email e senha para abrir escalas, repertório e chat.'
+            ? 'Use email e senha para abrir escalas, repertório, equipe e mensagens.'
             : 'O primeiro cadastro pode ser promovido para liderança direto no painel do Supabase.'}
         </p>
 
@@ -76,7 +77,7 @@ export function AuthPanel() {
           </label>
 
           {authMessage ? (
-            <p className="rounded-2xl bg-[rgba(122,31,62,0.1)] px-4 py-3 text-sm text-[var(--accent-strong)]">
+            <p className="rounded-2xl bg-[rgba(200,169,106,0.14)] px-4 py-3 text-sm text-[var(--foreground)]">
               {authMessage}
             </p>
           ) : null}
@@ -84,7 +85,7 @@ export function AuthPanel() {
           <button
             type="submit"
             disabled={isLoading}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--foreground)] px-4 py-3 text-white disabled:opacity-50"
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--secondary)] px-4 py-3 text-white shadow-[var(--shadow-card)] disabled:opacity-50"
           >
             {isLoading ? <LoaderCircle size={16} className="animate-spin" /> : null}
             {authMode === 'login' ? <LogIn size={16} /> : <UserPlus size={16} />}
@@ -95,11 +96,11 @@ export function AuthPanel() {
         <button
           type="button"
           onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')}
-          className="mt-4 w-full text-sm text-[var(--accent-strong)]"
+          className="mt-4 w-full text-sm text-[var(--secondary)]"
         >
           {authMode === 'login'
             ? 'Ainda não tem acesso? Criar conta'
-            : 'Ja tem conta? Voltar para login'}
+            : 'Já tem conta? Voltar para login'}
         </button>
       </section>
     </main>

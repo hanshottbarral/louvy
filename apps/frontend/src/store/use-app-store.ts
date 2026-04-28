@@ -1,6 +1,6 @@
 'use client';
 
-import { AppRole, InstrumentRole, MemberStatus, MessageType, ScheduleEventType } from '@louvy/shared';
+import { AppRole, InstrumentRole, MemberStatus, MessageType, ScheduleEventType } from '@korus/shared';
 import { create } from 'zustand';
 import {
   loadAvailabilityBlocks,
@@ -936,7 +936,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         if (profile.email) {
           await sendNotificationEmail({
             to: profile.email,
-            subject: 'Você foi escalado no Louvy',
+            subject: 'Você foi escalado no KORUS',
             html: `<p>Olá, ${profile.name}.</p><p>Você foi escalado em <strong>${schedule?.title ?? 'uma nova escala'}</strong>. Entre no app para confirmar ou recusar.</p>`,
           });
         }
@@ -1013,7 +1013,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             if (admin.email) {
               await sendNotificationEmail({
                 to: admin.email,
-                subject: 'Recusa de escala no Louvy',
+                subject: 'Recusa de escala no KORUS',
                 html: `<p>${currentUser.name} recusou a escala <strong>${targetSchedule.title}</strong>.</p><p>Motivo: ${declineReason?.trim()}</p>`,
               });
             }

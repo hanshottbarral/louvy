@@ -1,25 +1,25 @@
 'use client';
 
-export type LouvyTheme = 'vinho' | 'grafite' | 'oceano' | 'floresta' | 'areia';
+export type KorusTheme = 'midnight' | 'cobalt' | 'graphite' | 'ivory' | 'aurora';
 
 export interface UserPreferences {
-  theme: LouvyTheme;
+  theme: KorusTheme;
   displayName?: string;
   avatarUrl?: string;
 }
 
-const STORAGE_PREFIX = 'louvy:user-preferences:';
-export const USER_PREFERENCES_EVENT = 'louvy:user-preferences';
+const STORAGE_PREFIX = 'korus:user-preferences:';
+export const USER_PREFERENCES_EVENT = 'korus:user-preferences';
 
-export const themeOptions: Array<{ id: LouvyTheme; label: string }> = [
-  { id: 'vinho', label: 'Vinho' },
-  { id: 'grafite', label: 'Grafite' },
-  { id: 'oceano', label: 'Oceano' },
-  { id: 'floresta', label: 'Floresta' },
-  { id: 'areia', label: 'Areia' },
+export const themeOptions: Array<{ id: KorusTheme; label: string }> = [
+  { id: 'midnight', label: 'Midnight' },
+  { id: 'cobalt', label: 'Cobalt' },
+  { id: 'graphite', label: 'Graphite' },
+  { id: 'ivory', label: 'Ivory' },
+  { id: 'aurora', label: 'Aurora' },
 ];
 
-export function applyTheme(theme: LouvyTheme) {
+export function applyTheme(theme: KorusTheme) {
   if (typeof document === 'undefined') {
     return;
   }
@@ -30,7 +30,7 @@ export function applyTheme(theme: LouvyTheme) {
 export function loadUserPreferences(userId: string): UserPreferences {
   if (typeof window === 'undefined') {
     return {
-      theme: 'vinho',
+      theme: 'midnight',
     };
   }
 
@@ -38,19 +38,19 @@ export function loadUserPreferences(userId: string): UserPreferences {
     const raw = window.localStorage.getItem(`${STORAGE_PREFIX}${userId}`);
     if (!raw) {
       return {
-        theme: 'vinho',
+        theme: 'midnight',
       };
     }
 
     const parsed = JSON.parse(raw) as Partial<UserPreferences>;
     return {
-      theme: parsed.theme ?? 'vinho',
+      theme: parsed.theme ?? 'midnight',
       displayName: parsed.displayName,
       avatarUrl: parsed.avatarUrl,
     };
   } catch {
     return {
-      theme: 'vinho',
+      theme: 'midnight',
     };
   }
 }

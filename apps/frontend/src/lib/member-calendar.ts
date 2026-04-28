@@ -1,6 +1,6 @@
 'use client';
 
-import { AppRole } from '@louvy/shared';
+import { AppRole } from '@korus/shared';
 import { supabase } from '@/lib/supabase';
 import {
   AvailabilityBlock,
@@ -12,8 +12,8 @@ import {
   VocalRange,
 } from '@/types';
 
-const MEMBER_STORAGE_KEY = 'louvy:member-directory:v1';
-const AVAILABILITY_STORAGE_KEY = 'louvy:availability:v1';
+const MEMBER_STORAGE_KEY = 'korus:member-directory:v1';
+const AVAILABILITY_STORAGE_KEY = 'korus:availability:v1';
 
 type MemberMetadataRecord = MemberDirectoryInput;
 

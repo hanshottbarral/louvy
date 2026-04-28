@@ -1,10 +1,21 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { AppRole, MemberStatus } from '@louvy/shared';
+import { AppRole, MemberStatus } from '@korus/shared';
+import { InstrumentRole as PrismaInstrumentRole, MemberStatus as PrismaMemberStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
 import { UpdateScheduleDto, UpdateScheduleMemberStatusDto } from './dto/update-schedule.dto';
 import { NotificationsService } from '../notifications/notifications.service';
+
+function toPrismaMember(role: CreateScheduleDto['members'][number]) {
+  return {
+    user: {
+      connect: { id: role.userId },
+    },
+    role: role.role as unknown as PrismaInstrumentRole,
+    status: role.status as unknown as PrismaMemberStatus,
+  };
+}
 
 @Injectable()
 export class SchedulesService {
@@ -24,11 +35,7 @@ export class SchedulesService {
         notes: dto.notes,
         createdById: userId,
         members: {
-          create: dto.members.map((member) => ({
-            userId: member.userId,
-            role: member.role,
-            status: member.status,
-          })),
+          create: dto.members.map((member) => toPrismaMember(member)),
         },
       },
       include: this.scheduleInclude,
@@ -86,11 +93,7 @@ export class SchedulesService {
         members: dto.members
           ? {
               deleteMany: {},
-              create: dto.members.map((member) => ({
-                userId: member.userId,
-                role: member.role,
-                status: member.status,
-              })),
+              create: dto.members.map((member) => toPrismaMember(member)),
             }
           : undefined,
       },
@@ -165,7 +168,7 @@ export class SchedulesService {
     }
   }
 
-  private readonly scheduleInclude = {
+  private readonly scheduleInclude = Prisma.validator<Prisma.ScheduleInclude>()({
     createdBy: {
       select: { id: true, name: true, email: true, role: true },
     },
@@ -180,5 +183,5 @@ export class SchedulesService {
     songs: {
       orderBy: { position: 'asc' as const },
     },
-  };
+  });
 }

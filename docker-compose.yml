@@ -1,10 +1,10 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: louvy-postgres
+    container_name: korus-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: louvy
+      POSTGRES_DB: korus
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
@@ -16,12 +16,12 @@ services:
     build:
       context: .
       dockerfile: apps/backend/Dockerfile
-    container_name: louvy-backend
+    container_name: korus-backend
     restart: unless-stopped
     depends_on:
       - postgres
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/louvy
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/korus
       JWT_ACCESS_SECRET: access-secret
       JWT_REFRESH_SECRET: refresh-secret
       FRONTEND_URL: http://localhost:3000
@@ -36,7 +36,7 @@ services:
     build:
       context: .
       dockerfile: apps/frontend/Dockerfile
-    container_name: louvy-frontend
+    container_name: korus-frontend
     restart: unless-stopped
     depends_on:
       - backend

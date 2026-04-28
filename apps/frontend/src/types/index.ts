@@ -5,7 +5,7 @@ import {
   MemberStatus,
   ScheduleEventType,
   SongDto,
-} from '@louvy/shared';
+} from '@korus/shared';
 
 export type AppSection =
   | 'notices'

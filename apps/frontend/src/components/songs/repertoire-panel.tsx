@@ -12,7 +12,7 @@ import {
   Youtube,
 } from 'lucide-react';
 import { FormEvent, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
-import { AppRole } from '@louvy/shared';
+import { AppRole } from '@korus/shared';
 import {
   formatDuration,
   formatScheduleDate,
@@ -394,7 +394,7 @@ export function RepertoirePanel() {
       <div className="glass rounded-3xl p-5">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Ministério</p>
+            <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Biblioteca</p>
             <h2 className="mt-2 text-3xl leading-none">Repertório completo</h2>
             <p className="mt-2 max-w-2xl text-sm text-[var(--muted)]">
               Aqui fica o fluxo principal para montar a parte musical da escala: escolher a escala alvo, adicionar músicas, definir tom, solista e ordem.
@@ -532,12 +532,12 @@ export function RepertoirePanel() {
                   </div>
                   <input value={tags} onChange={(event) => setTags(event.target.value)} placeholder="Tags separadas por vírgula" className="rounded-2xl border border-[var(--line)] bg-white px-4 py-3 outline-none md:col-span-2" />
                   {autofillMessage ? (
-                    <p className="md:col-span-2 rounded-2xl bg-[rgba(122,31,62,0.1)] px-4 py-3 text-sm text-[var(--accent-strong)]">
+                    <p className="md:col-span-2 rounded-2xl bg-[rgba(200,169,106,0.14)] px-4 py-3 text-sm text-[var(--accent-strong)]">
                       {autofillMessage}
                     </p>
                   ) : null}
                   {authMessage ? (
-                    <p className="md:col-span-2 rounded-2xl bg-[rgba(122,31,62,0.1)] px-4 py-3 text-sm text-[var(--accent-strong)]">
+                    <p className="md:col-span-2 rounded-2xl bg-[rgba(200,169,106,0.14)] px-4 py-3 text-sm text-[var(--accent-strong)]">
                       {authMessage}
                     </p>
                   ) : null}
@@ -584,7 +584,7 @@ export function RepertoirePanel() {
 
                 <div className="mt-3 flex flex-wrap gap-2">
                   {song.tags.map((tag) => (
-                    <span key={tag} className="rounded-full bg-[rgba(122,31,62,0.1)] px-3 py-1 text-xs text-[var(--accent-strong)]">
+                    <span key={tag} className="rounded-full bg-[rgba(200,169,106,0.14)] px-3 py-1 text-xs text-[var(--accent-strong)]">
                       {normalizeTagLabel(tag)}
                     </span>
                   ))}

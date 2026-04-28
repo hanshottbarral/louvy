@@ -4,13 +4,13 @@ import {
   MemberStatus,
   MessageType,
   ScheduleEventType,
-} from '@louvy/shared';
+} from '@korus/shared';
 import { MinistrySongView, NotificationView, ScheduleView, SessionUser } from '@/types';
 
 export const mockUser: SessionUser = {
   id: 'user-admin',
   name: 'Ana Clara',
-  email: 'ana@louvy.app',
+  email: 'ana@korus.app',
   role: AppRole.ADMIN,
 };
 

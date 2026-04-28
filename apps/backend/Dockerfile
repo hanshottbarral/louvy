@@ -11,11 +11,11 @@ RUN npm install
 COPY apps/backend ./apps/backend
 COPY packages/shared ./packages/shared
 
-RUN npm run prisma:generate --workspace @louvy/backend
-RUN npm run build --workspace @louvy/shared
-RUN npm run build --workspace @louvy/backend
+RUN npm run prisma:generate --workspace @korus/backend
+RUN npm run build --workspace @korus/shared
+RUN npm run build --workspace @korus/backend
 
 EXPOSE 4000
 
-CMD ["npm", "run", "start", "--workspace", "@louvy/backend"]
+CMD ["npm", "run", "start", "--workspace", "@korus/backend"]
 

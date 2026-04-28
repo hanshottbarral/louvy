@@ -1,4 +1,4 @@
-import { MessageType } from '@louvy/shared';
+import { MessageType } from '@korus/shared';
 import { IsEnum, IsOptional, IsString, IsUrl } from 'class-validator';
 
 export class CreateMessageDto {

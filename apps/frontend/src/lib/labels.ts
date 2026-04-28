@@ -1,4 +1,4 @@
-import { InstrumentRole, MemberStatus, ScheduleEventType } from '@louvy/shared';
+import { InstrumentRole, MemberStatus, ScheduleEventType } from '@korus/shared';
 import {
   AvailabilityRecurrence,
   AvailabilityTimeSlot,

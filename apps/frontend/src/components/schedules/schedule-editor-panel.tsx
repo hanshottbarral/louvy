@@ -1,6 +1,6 @@
 'use client';
 
-import { AppRole, ScheduleEventType } from '@louvy/shared';
+import { AppRole, ScheduleEventType } from '@korus/shared';
 import { CalendarDays, CalendarRange } from 'lucide-react';
 import { FormEvent, useEffect, useState } from 'react';
 import { getMonthDayLabel, getWeekdayLabel } from '@/lib/utils';
@@ -214,7 +214,7 @@ export function ScheduleEditorPanel({ schedule }: { schedule: ScheduleView }) {
         ) : null}
 
         {authMessage ? (
-          <div className="rounded-2xl bg-[rgba(122,31,62,0.1)] px-4 py-3 text-sm text-[var(--accent-strong)]">
+          <div className="rounded-2xl bg-[rgba(200,169,106,0.14)] px-4 py-3 text-sm text-[var(--accent-strong)]">
             {authMessage}
           </div>
         ) : null}

@@ -1,0 +1,13 @@
+<svg width="1600" height="520" viewBox="0 0 1600 520" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <g transform="translate(48 42)">
+    <svg width="280" height="280" viewBox="0 0 1024 1024" fill="none">
+      <rect x="220" y="140" width="68" height="744" rx="34" fill="#F5F5F5"/>
+      <path d="M322 512L660 188" stroke="#C8A96A" stroke-width="68" stroke-linecap="round"/>
+      <path d="M322 528L676 868" stroke="#C8A96A" stroke-width="68" stroke-linecap="round"/>
+      <path d="M520 512C640 436 732 424 836 512" stroke="#F5F5F5" stroke-opacity="0.7" stroke-width="52" stroke-linecap="round"/>
+      <path d="M566 610C670 564 740 564 826 626" stroke="#F5F5F5" stroke-opacity="0.45" stroke-width="42" stroke-linecap="round"/>
+    </svg>
+  </g>
+  <text x="350" y="240" fill="#F5F5F5" font-family="Poppins, Arial, sans-serif" font-weight="700" font-size="182" letter-spacing="0.22em">KORUS</text>
+  <text x="356" y="318" fill="#C8A96A" font-family="Inter, Arial, sans-serif" font-weight="500" font-size="34" letter-spacing="0.18em">TEAM SOUND COLLABORATION</text>
+</svg>

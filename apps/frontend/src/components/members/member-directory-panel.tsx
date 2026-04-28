@@ -1,6 +1,6 @@
 'use client';
 
-import { AppRole } from '@louvy/shared';
+import { AppRole } from '@korus/shared';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { MinistryBadge } from '@/components/shared/ministry-badge';
 import { Crown, Search, ShieldCheck, UserCog2, Users2 } from 'lucide-react';
@@ -178,7 +178,7 @@ export function MemberDirectoryPanel() {
                   className={cn(
                     'rounded-full px-2 py-1 text-xs',
                     member.appRole === AppRole.ADMIN
-                      ? 'bg-[rgba(122,31,62,0.12)] text-[var(--accent-strong)]'
+                      ? 'bg-[rgba(200,169,106,0.18)] text-[var(--accent-strong)]'
                       : 'bg-[var(--surface-strong)] text-[var(--muted)]',
                   )}
                 >
@@ -233,7 +233,7 @@ export function MemberDirectoryPanel() {
             ) : null}
 
             {canRecoverAdmin ? (
-              <div className="rounded-2xl border border-[rgba(122,31,62,0.2)] bg-[rgba(122,31,62,0.08)] px-4 py-3 text-sm">
+              <div className="rounded-2xl border border-[rgba(122,31,62,0.2)] bg-[rgba(200,169,106,0.10)] px-4 py-3 text-sm">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="font-semibold text-[var(--accent-strong)]">Nenhum admin ativo</p>
@@ -375,7 +375,7 @@ export function MemberDirectoryPanel() {
             ) : null}
 
             {authMessage ? (
-              <div className="rounded-2xl bg-[rgba(122,31,62,0.1)] px-4 py-3 text-sm text-[var(--accent-strong)]">
+              <div className="rounded-2xl bg-[rgba(200,169,106,0.14)] px-4 py-3 text-sm text-[var(--accent-strong)]">
                 {authMessage}
               </div>
             ) : null}

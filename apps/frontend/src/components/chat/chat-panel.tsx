@@ -1,6 +1,6 @@
 'use client';
 
-import { MessageType } from '@louvy/shared';
+import { MessageType } from '@korus/shared';
 import { SendHorizontal } from 'lucide-react';
 import { FormEvent, useState } from 'react';
 import { broadcastTyping } from '@/lib/realtime';

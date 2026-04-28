@@ -1,6 +1,6 @@
 'use client';
 
-import { MessageType } from '@louvy/shared';
+import { MessageType } from '@korus/shared';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Cake, MessageCircleMore, SendHorizontal } from 'lucide-react';
 import { AudioRecorder } from '@/components/chat/audio-recorder';
@@ -108,7 +108,7 @@ export function FellowshipPanel() {
           <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Conexão</p>
           <h2 className="mt-2 text-3xl leading-none">Comunhão</h2>
           <p className="mt-2 text-sm text-[var(--muted)]">
-            Um chat geral para todo o ministério, com mensagens, áudio e recados rápidos do dia a dia.
+            Um chat geral para toda a equipe, com mensagens, áudio e recados rápidos do dia a dia.
           </p>
         </div>
 
@@ -142,14 +142,14 @@ export function FellowshipPanel() {
         </div>
 
         {feedback ? (
-          <div className="mt-3 rounded-2xl bg-[rgba(122,31,62,0.1)] px-4 py-3 text-sm text-[var(--accent-strong)]">
+          <div className="mt-3 rounded-2xl bg-[rgba(200,169,106,0.14)] px-4 py-3 text-sm text-[var(--accent-strong)]">
             {feedback}
           </div>
         ) : null}
 
         <div className="mt-3 flex items-center justify-between gap-2 text-xs text-[var(--muted)]">
           <span className="inline-flex items-center gap-2">
-            <MessageCircleMore size={14} /> Chat geral do ministério
+            <MessageCircleMore size={14} /> Chat geral da equipe
           </span>
           <button
             type="button"

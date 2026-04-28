@@ -1,4 +1,4 @@
-import { AppRole } from '@louvy/shared';
+import { AppRole } from '@korus/shared';
 import { IsEmail, IsEnum, IsString, MinLength } from 'class-validator';
 
 export class RegisterDto {

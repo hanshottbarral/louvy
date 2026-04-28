@@ -1,7 +1,7 @@
 'use client';
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { AppRole, ScheduleEventType } from '@louvy/shared';
+import { AppRole, ScheduleEventType } from '@korus/shared';
 import { CalendarDays, Clock3, LockKeyhole, Pencil, PlusCircle, RefreshCw, Trash2 } from 'lucide-react';
 import { availabilityRecurrenceLabel, availabilityTimeSlotLabel } from '@/lib/labels';
 import { formatScheduleDate, getWeekdayLabel } from '@/lib/utils';
@@ -200,14 +200,14 @@ export function CalendarPanel() {
                   onClick={() => setSelectedDate(dayKey)}
                   className={`min-h-[108px] rounded-2xl border p-3 text-left transition ${
                     isSelected
-                      ? 'border-[var(--accent)] bg-[rgba(122,31,62,0.08)]'
+                      ? 'border-[var(--accent)] bg-[rgba(200,169,106,0.10)]'
                       : 'border-[var(--line)] bg-[var(--surface-strong)]'
                   } ${!isCurrentMonth ? 'opacity-45' : ''}`}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <span className="text-sm font-semibold">{day.getDate()}</span>
                     {scheduleCount ? (
-                      <span className="rounded-full bg-[var(--accent)] px-2 py-1 text-[10px] text-white">
+                      <span className="rounded-full bg-[var(--accent)] px-2 py-1 text-[10px] text-[var(--foreground)]">
                         {scheduleCount} escala{scheduleCount > 1 ? 's' : ''}
                       </span>
                     ) : null}
@@ -349,7 +349,7 @@ export function CalendarPanel() {
             </select>
 
             {authMessage ? (
-              <div className="rounded-2xl bg-[rgba(122,31,62,0.1)] px-4 py-3 text-sm text-[var(--accent-strong)]">
+              <div className="rounded-2xl bg-[rgba(200,169,106,0.14)] px-4 py-3 text-sm text-[var(--accent-strong)]">
                 {authMessage}
               </div>
             ) : null}

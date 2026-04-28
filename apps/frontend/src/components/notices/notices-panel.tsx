@@ -1,14 +1,17 @@
 'use client';
 
-import { AppRole } from '@louvy/shared';
+import { AppRole } from '@korus/shared';
 import { ChangeEvent, DragEvent, FormEvent, useEffect, useRef, useState } from 'react';
-import { ImagePlus, Link2, Megaphone, PlusCircle, Trash2 } from 'lucide-react';
+import { Calendar, ImagePlus, Link2, Megaphone, MessageCircleMore, Music2, PlusCircle, Trash2, Users2 } from 'lucide-react';
 import { loadNotices, saveNotice, NoticeItem } from '@/lib/community';
+import { AppSection } from '@/types';
 import { formatScheduleDate } from '@/lib/utils';
 import { useAppStore } from '@/store/use-app-store';
 
 export function NoticesPanel() {
   const currentUser = useAppStore((state) => state.currentUser);
+  const schedules = useAppStore((state) => state.schedules);
+  const setActiveSection = useAppStore((state) => state.setActiveSection);
   const [items, setItems] = useState<NoticeItem[]>([]);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -18,6 +21,17 @@ export function NoticesPanel() {
   const [message, setMessage] = useState<string>();
   const [isDraggingImage, setIsDraggingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const nextSchedule = [...schedules].sort((a, b) => a.date.localeCompare(b.date))[0];
+  const quickActions: Array<{
+    id: AppSection;
+    label: string;
+    icon: typeof Calendar;
+  }> = [
+    { id: 'schedules', label: 'Escalas', icon: Calendar },
+    { id: 'repertoire', label: 'Músicas', icon: Music2 },
+    { id: 'members', label: 'Equipe', icon: Users2 },
+    { id: 'fellowship', label: 'Mensagens', icon: MessageCircleMore },
+  ];
 
   useEffect(() => {
     void loadNotices()
@@ -98,11 +112,41 @@ export function NoticesPanel() {
     <section className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_390px]">
       <div className="space-y-3">
         <div className="glass rounded-3xl p-5">
-          <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Ministério</p>
-          <h2 className="mt-2 text-3xl leading-none">Avisos</h2>
+          <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Home</p>
+          <h2 className="mt-2 text-3xl leading-none" data-display="true">
+            Olá, {currentUser?.name?.split(' ')[0] || 'time'}
+          </h2>
           <p className="mt-2 max-w-2xl text-sm text-[var(--muted)]">
-            Esse é o mural principal do app. A liderança publica recados, links, imagens e combinados importantes.
+            Avisos, próximos compromissos e atalhos rápidos do seu workspace KORUS.
           </p>
+
+          <div className="mt-5 grid gap-3 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+            <div className="rounded-3xl bg-[linear-gradient(135deg,#121212_0%,#1A2A44_100%)] p-5 text-white shadow-[0_18px_50px_rgba(10,15,24,0.24)]">
+              <p className="text-xs uppercase tracking-[0.18em] text-white/60">Próxima escala</p>
+              <h3 className="mt-3 text-2xl" data-display="true">
+                {nextSchedule?.title ?? 'Nenhuma escala definida'}
+              </h3>
+              <p className="mt-2 text-sm text-white/72">
+                {nextSchedule
+                  ? `${formatScheduleDate(nextSchedule.date)} às ${nextSchedule.time}`
+                  : 'Assim que a próxima escala for criada, ela aparece aqui em destaque.'}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              {quickActions.map((action) => (
+                <button
+                  key={action.id}
+                  type="button"
+                  onClick={() => setActiveSection(action.id)}
+                  className="rounded-2xl border border-[var(--line)] bg-[var(--surface-strong)] p-4 text-left shadow-[var(--shadow-card)]"
+                >
+                  <action.icon size={18} className="text-[var(--secondary)]" />
+                  <p className="mt-6 font-semibold">{action.label}</p>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         <div className="space-y-3">
@@ -194,7 +238,7 @@ export function NoticesPanel() {
               onDrop={handleDrop}
               className={`flex min-h-[170px] w-full flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed px-4 py-5 text-center ${
                 isDraggingImage
-                  ? 'border-[var(--accent-strong)] bg-[rgba(122,31,62,0.08)]'
+                  ? 'border-[var(--accent-strong)] bg-[rgba(200,169,106,0.10)]'
                   : 'border-[var(--line)] bg-white'
               }`}
             >
@@ -221,7 +265,7 @@ export function NoticesPanel() {
               </button>
             ) : null}
             {message ? (
-              <div className="rounded-2xl bg-[rgba(122,31,62,0.1)] px-4 py-3 text-sm text-[var(--accent-strong)]">
+              <div className="rounded-2xl bg-[rgba(200,169,106,0.14)] px-4 py-3 text-sm text-[var(--accent-strong)]">
                 {message}
               </div>
             ) : null}

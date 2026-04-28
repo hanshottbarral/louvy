@@ -1,6 +1,6 @@
 'use client';
 
-import { MessageType } from '@louvy/shared';
+import { MessageType } from '@korus/shared';
 import { supabase } from '@/lib/supabase';
 import { SessionUser } from '@/types';
 
@@ -26,8 +26,8 @@ export interface FellowshipMessage {
   };
 }
 
-const NOTICES_KEY = 'louvy:notices:v1';
-const FELLOWSHIP_KEY = 'louvy:fellowship:v1';
+const NOTICES_KEY = 'korus:notices:v1';
+const FELLOWSHIP_KEY = 'korus:fellowship:v1';
 
 function hasBrowserStorage() {
   return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';

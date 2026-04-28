@@ -14,7 +14,8 @@ import {
   Users2,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { ScheduleEventType } from '@louvy/shared';
+import { ScheduleEventType } from '@korus/shared';
+import { KorusMark } from '@/components/brand/korus-brand';
 import { loadUserPreferences, USER_PREFERENCES_EVENT, UserPreferences } from '@/lib/user-preferences';
 import { formatScheduleDate, getWeekdayLabel } from '@/lib/utils';
 import { useAppStore } from '@/store/use-app-store';
@@ -82,16 +83,21 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="flex min-h-[240px] flex-col rounded-[28px] bg-[var(--sidebar)] p-4 text-[var(--sidebar-foreground)] lg:sticky lg:top-3 lg:h-[calc(100vh-1.5rem)] lg:overflow-y-auto">
+    <aside className="flex min-h-[240px] flex-col rounded-[28px] bg-[linear-gradient(180deg,#121212_0%,#161922_100%)] p-3 text-[var(--sidebar-foreground)] lg:sticky lg:top-3 lg:h-[calc(100vh-1.5rem)] lg:overflow-y-auto">
       <div className="mb-5 flex items-center justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-[0.18em] text-white/55">Louvy</p>
-          <h1 className="mt-1 text-2xl">Ministério</h1>
+        <div className="flex items-center gap-3">
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-2">
+            <KorusMark tone="light" size={30} />
+          </div>
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.22em] text-white/45">KORUS</p>
+            <h1 className="mt-1 text-lg" data-display="true">Control hub</h1>
+          </div>
         </div>
         {activeSection === 'schedules' || activeSection === 'repertoire' ? (
           <button
             onClick={contextualCreate}
-            className="rounded-full border border-white/12 p-2 text-white/90"
+            className="rounded-full border border-white/12 bg-white/5 p-2 text-white/90"
             title={activeSection === 'repertoire' ? 'Cadastrar música' : 'Criar escala'}
           >
             <Plus size={18} />
@@ -106,7 +112,7 @@ export function Sidebar() {
           aria-label="Avisos"
           className={cn(
             'flex items-center justify-center rounded-2xl px-3 py-3 text-sm',
-            activeSection === 'notices' ? 'bg-white text-[var(--foreground)]' : 'bg-white/5',
+            activeSection === 'notices' ? 'bg-[var(--accent)] text-[var(--foreground)]' : 'bg-white/5 hover:bg-white/10',
           )}
         >
           <BellRing size={16} />
@@ -117,7 +123,7 @@ export function Sidebar() {
           aria-label="Escalas"
           className={cn(
             'flex items-center justify-center rounded-2xl px-3 py-3 text-sm',
-            activeSection === 'schedules' ? 'bg-white text-[var(--foreground)]' : 'bg-white/5',
+            activeSection === 'schedules' ? 'bg-[var(--accent)] text-[var(--foreground)]' : 'bg-white/5 hover:bg-white/10',
           )}
         >
           <Calendar size={16} />
@@ -128,7 +134,7 @@ export function Sidebar() {
           aria-label="Repertório"
           className={cn(
             'flex items-center justify-center rounded-2xl px-3 py-3 text-sm',
-            activeSection === 'repertoire' ? 'bg-white text-[var(--foreground)]' : 'bg-white/5',
+            activeSection === 'repertoire' ? 'bg-[var(--accent)] text-[var(--foreground)]' : 'bg-white/5 hover:bg-white/10',
           )}
         >
           <BookAudio size={16} />
@@ -139,7 +145,7 @@ export function Sidebar() {
           aria-label="Membros"
           className={cn(
             'flex items-center justify-center rounded-2xl px-3 py-3 text-sm',
-            activeSection === 'members' ? 'bg-white text-[var(--foreground)]' : 'bg-white/5',
+            activeSection === 'members' ? 'bg-[var(--accent)] text-[var(--foreground)]' : 'bg-white/5 hover:bg-white/10',
           )}
         >
           <Users2 size={16} />
@@ -150,7 +156,7 @@ export function Sidebar() {
           aria-label="Calendário"
           className={cn(
             'flex items-center justify-center rounded-2xl px-3 py-3 text-sm',
-            activeSection === 'calendar' ? 'bg-white text-[var(--foreground)]' : 'bg-white/5',
+            activeSection === 'calendar' ? 'bg-[var(--accent)] text-[var(--foreground)]' : 'bg-white/5 hover:bg-white/10',
           )}
         >
           <CalendarDays size={16} />
@@ -161,7 +167,7 @@ export function Sidebar() {
           aria-label="Comunhão"
           className={cn(
             'flex items-center justify-center rounded-2xl px-3 py-3 text-sm',
-            activeSection === 'fellowship' ? 'bg-white text-[var(--foreground)]' : 'bg-white/5',
+            activeSection === 'fellowship' ? 'bg-[var(--accent)] text-[var(--foreground)]' : 'bg-white/5 hover:bg-white/10',
           )}
         >
           <MessageCircleHeart size={16} />
@@ -172,7 +178,7 @@ export function Sidebar() {
           aria-label="Configurações"
           className={cn(
             'flex items-center justify-center rounded-2xl px-3 py-3 text-sm',
-            activeSection === 'settings' ? 'bg-white text-[var(--foreground)]' : 'bg-white/5',
+            activeSection === 'settings' ? 'bg-[var(--accent)] text-[var(--foreground)]' : 'bg-white/5 hover:bg-white/10',
           )}
         >
           <Settings2 size={16} />
@@ -189,7 +195,7 @@ export function Sidebar() {
             }}
             className={cn(
               'w-full rounded-2xl px-3 py-3 text-left transition',
-              selectedScheduleId === schedule.id ? 'bg-white text-[var(--foreground)]' : 'bg-white/5',
+              selectedScheduleId === schedule.id ? 'bg-[var(--surface)] text-[var(--foreground)]' : 'bg-white/5 hover:bg-white/10',
             )}
           >
             <div className="flex items-start justify-between gap-3">
@@ -202,7 +208,7 @@ export function Sidebar() {
               </div>
               <div className="flex items-center gap-2">
                 {!!schedule.unreadCount && (
-                  <span className="rounded-full bg-[var(--accent)] px-2 py-1 text-xs text-white">
+                  <span className="rounded-full bg-[var(--accent)] px-2 py-1 text-xs text-[var(--foreground)]">
                     {schedule.unreadCount}
                   </span>
                 )}
@@ -213,7 +219,7 @@ export function Sidebar() {
         ))}
       </div>
 
-      <div className="mt-auto rounded-2xl border border-white/10 bg-white/6 p-3">
+      <div className="mt-auto rounded-2xl border border-white/10 bg-white/6 p-3 shadow-[0_10px_20px_rgba(0,0,0,0.18)]">
         <div className="flex items-center gap-3">
           {preferences?.avatarUrl ? (
             // eslint-disable-next-line @next/next/no-img-element

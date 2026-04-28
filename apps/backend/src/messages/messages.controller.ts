@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
-import { AppRole } from '@louvy/shared';
+import { AppRole } from '@korus/shared';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CreateMessageDto } from './dto/create-message.dto';

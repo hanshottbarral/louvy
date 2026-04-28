@@ -1,6 +1,6 @@
 'use client';
 
-import { AppRole } from '@louvy/shared';
+import { AppRole } from '@korus/shared';
 import { ChangeEvent, DragEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { ImagePlus, Palette, Trash2, UserRoundCog } from 'lucide-react';
 import { MinistryBadge } from '@/components/shared/ministry-badge';
@@ -260,7 +260,7 @@ export function SettingsPanel() {
                 className={cn(
                   'flex min-h-[220px] w-full flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed px-5 py-6 text-center transition',
                   isDraggingPhoto
-                    ? 'border-[var(--accent-strong)] bg-[rgba(122,31,62,0.08)]'
+                    ? 'border-[var(--accent-strong)] bg-[rgba(200,169,106,0.10)]'
                     : 'border-[var(--line)] bg-[var(--surface-strong)]',
                 )}
               >
@@ -336,7 +336,7 @@ export function SettingsPanel() {
         <section className="glass rounded-3xl p-5">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Ministério</p>
+              <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Atuação</p>
               <h3 className="text-xl">Funções e classificação vocal</h3>
             </div>
             <span className="rounded-full bg-[var(--surface-strong)] px-3 py-1 text-sm">
@@ -394,7 +394,7 @@ export function SettingsPanel() {
         </section>
 
         {message ? (
-          <div className="rounded-2xl bg-[rgba(122,31,62,0.1)] px-4 py-3 text-sm text-[var(--accent-strong)]">
+          <div className="rounded-2xl bg-[rgba(200,169,106,0.14)] px-4 py-3 text-sm text-[var(--accent-strong)]">
             {message}
           </div>
         ) : null}

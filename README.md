@@ -1,4 +1,4 @@
-# Louvy
+# KORUS
 
 Monorepo full-stack para gerenciamento de escala de louvor de igreja, com escalas, setlists, chat em tempo real, notificacoes e upload de audio.
 
@@ -126,4 +126,4 @@ docker compose up --build
 - Adicionar testes E2E para fluxo de login, criacao de escala e chat
 - Evoluir para PWA completa com cache offline e sincronizacao
 
-# louvy
+# KORUS

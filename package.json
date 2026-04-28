@@ -1,5 +1,5 @@
 {
-  "name": "louvy",
+  "name": "korus",
   "private": true,
   "version": "0.1.0",
   "packageManager": "pnpm@10.33.2",
@@ -8,14 +8,14 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "npm run dev --workspace @louvy/backend & npm run dev --workspace @louvy/frontend",
-    "dev:frontend": "npm run dev --workspace @louvy/frontend",
-    "dev:backend": "npm run dev --workspace @louvy/backend",
-    "build": "npm run build --workspace @louvy/shared && npm run build --workspace @louvy/backend && npm run build --workspace @louvy/frontend",
-    "lint": "npm run lint --workspace @louvy/backend && npm run lint --workspace @louvy/frontend",
-    "test": "npm run test --workspace @louvy/backend && npm run test --workspace @louvy/frontend",
-    "prisma:generate": "npm run prisma:generate --workspace @louvy/backend",
-    "prisma:migrate": "npm run prisma:migrate --workspace @louvy/backend"
+    "dev": "npm run dev --workspace @korus/backend & npm run dev --workspace @korus/frontend",
+    "dev:frontend": "npm run dev --workspace @korus/frontend",
+    "dev:backend": "npm run dev --workspace @korus/backend",
+    "build": "npm run build --workspace @korus/shared && npm run build --workspace @korus/backend && npm run build --workspace @korus/frontend",
+    "lint": "npm run lint --workspace @korus/backend && npm run lint --workspace @korus/frontend",
+    "test": "npm run test --workspace @korus/backend && npm run test --workspace @korus/frontend",
+    "prisma:generate": "npm run prisma:generate --workspace @korus/backend",
+    "prisma:migrate": "npm run prisma:migrate --workspace @korus/backend"
   },
   "devDependencies": {
     "@next/swc-wasm-nodejs": "15.5.15"

@@ -1,6 +1,6 @@
 'use client';
 
-import { InstrumentRole } from '@louvy/shared';
+import { InstrumentRole } from '@korus/shared';
 import { Computer, Drum, Guitar, Headphones, MicVocal, Piano, Music2 } from 'lucide-react';
 import { instrumentRoleLabel, ministryAssignmentLabel, vocalRangeLabel } from '@/lib/labels';
 import { MinistryAssignment, VocalRange } from '@/types';

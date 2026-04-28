@@ -1,6 +1,6 @@
 'use client';
 
-import { AppRole, ScheduleEventType } from '@louvy/shared';
+import { AppRole, ScheduleEventType } from '@korus/shared';
 import { Bell, CalendarClock, Music2, Save, Trash2, UserRound } from 'lucide-react';
 import { AuthPanel } from '@/components/auth/auth-panel';
 import { CalendarPanel } from '@/components/calendar/calendar-panel';
@@ -56,9 +56,9 @@ export function DashboardShell() {
 
   return (
     <main className="min-h-screen p-3 md:p-5">
-      <div className="mx-auto grid min-h-[calc(100vh-1.5rem)] max-w-[1600px] gap-3 lg:grid-cols-[250px_minmax(0,1fr)]">
+      <div className="mx-auto grid min-h-[calc(100vh-1.5rem)] max-w-[1600px] gap-3 lg:grid-cols-[220px_minmax(0,1fr)]">
         <Sidebar />
-        <section className="glass overflow-hidden rounded-[28px] lg:h-[calc(100vh-1.5rem)] lg:overflow-y-auto">
+        <section className="glass overflow-hidden rounded-[30px] lg:h-[calc(100vh-1.5rem)] lg:overflow-y-auto">
           {activeSection === 'repertoire' ? (
             <div className="p-3">
               <RepertoirePanel />
@@ -101,7 +101,7 @@ export function DashboardShell() {
                 Assim que a primeira escala existir, ela aparece aqui com equipe, repertório e chat.
               </p>
               {authMessage ? (
-                <p className="mt-4 rounded-2xl bg-[rgba(122,31,62,0.1)] px-4 py-3 text-sm text-[var(--accent-strong)]">
+                <p className="mt-4 rounded-2xl bg-[rgba(200,169,106,0.14)] px-4 py-3 text-sm text-[var(--accent-strong)]">
                   {authMessage}
                 </p>
               ) : null}
@@ -121,7 +121,7 @@ export function DashboardShell() {
             </div>
           ) : schedule ? (
             <>
-              <div className="sticky top-0 z-20 border-b border-[var(--line)] bg-[color:rgba(255,250,252,0.94)] px-5 py-4 backdrop-blur">
+              <div className="sticky top-0 z-20 border-b border-[var(--line)] bg-[color:rgba(245,245,245,0.94)] px-5 py-4 backdrop-blur">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <ScheduleHeader schedule={schedule} />
                   <div className="flex items-center gap-2 text-sm text-[var(--muted)]">

@@ -1,4 +1,4 @@
-import { AppRole, InstrumentRole, MemberStatus } from '@louvy/shared';
+import { AppRole, InstrumentRole, MemberStatus } from '@korus/shared';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { MinistryBadge } from '@/components/shared/ministry-badge';
 import { findAvailabilityConflict } from '@/lib/availability';
@@ -8,7 +8,7 @@ import { useAppStore } from '@/store/use-app-store';
 import { ScheduleView, VocalRange } from '@/types';
 
 const statusClassName: Record<MemberStatus, string> = {
-  CONFIRMED: 'bg-[rgba(122,31,62,0.12)] text-[var(--accent-strong)]',
+  CONFIRMED: 'bg-[rgba(200,169,106,0.18)] text-[var(--accent-strong)]',
   PENDING: 'bg-[rgba(197,107,79,0.12)] text-[var(--danger)]',
   DECLINED: 'bg-[rgba(35,24,17,0.08)] text-[var(--muted)]',
 };
@@ -195,7 +195,7 @@ export function MembersPanel({ schedule }: { schedule: ScheduleView }) {
                 </p>
               ) : null}
               {authMessage ? (
-                <p className="rounded-2xl bg-[rgba(122,31,62,0.1)] px-4 py-3 text-sm text-[var(--accent-strong)]">
+                <p className="rounded-2xl bg-[rgba(200,169,106,0.14)] px-4 py-3 text-sm text-[var(--accent-strong)]">
                   {authMessage}
                 </p>
               ) : null}
@@ -247,7 +247,7 @@ export function MembersPanel({ schedule }: { schedule: ScheduleView }) {
                         status: MemberStatus.CONFIRMED,
                       })
                     }
-                    className="rounded-full bg-[var(--accent)] px-4 py-2 text-sm text-white"
+                    className="rounded-full bg-[var(--accent)] px-4 py-2 text-sm text-[var(--foreground)]"
                   >
                     Confirmar
                   </button>

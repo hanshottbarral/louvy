@@ -1,6 +1,6 @@
 'use client';
 
-import { AppRole } from '@louvy/shared';
+import { AppRole } from '@korus/shared';
 import { Youtube } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useAppStore } from '@/store/use-app-store';
@@ -37,7 +37,7 @@ export function SetlistPanel({ schedule }: { schedule: ScheduleView }) {
             <button
               type="button"
               onClick={() => window.open(playlistUrl, '_blank', 'noopener,noreferrer')}
-              className="inline-flex items-center justify-center rounded-full bg-[var(--accent)] p-2 text-white"
+              className="inline-flex items-center justify-center rounded-full bg-[var(--accent)] p-2 text-[var(--foreground)]"
               title="Abrir playlist da escala no YouTube"
             >
               <Youtube size={16} />
@@ -50,7 +50,7 @@ export function SetlistPanel({ schedule }: { schedule: ScheduleView }) {
       </div>
 
       {authMessage ? (
-        <p className="mb-4 rounded-2xl bg-[rgba(122,31,62,0.1)] px-4 py-3 text-sm text-[var(--accent-strong)]">
+        <p className="mb-4 rounded-2xl bg-[rgba(200,169,106,0.14)] px-4 py-3 text-sm text-[var(--accent-strong)]">
           {authMessage}
         </p>
       ) : null}
@@ -128,7 +128,7 @@ function SetlistSongCard({
   return (
     <article className="rounded-2xl border border-[var(--line)] bg-[var(--surface-strong)] p-3">
       <div className="flex items-start gap-3">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[rgba(122,31,62,0.12)] text-sm font-semibold text-[var(--accent-strong)]">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[rgba(200,169,106,0.18)] text-sm font-semibold text-[var(--accent-strong)]">
           {index + 1}
         </div>
         <div className="min-w-0 flex-1">
