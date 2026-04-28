@@ -2,7 +2,7 @@
 
 import { AppRole } from '@korus/shared';
 import { ChangeEvent, DragEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { ImagePlus, Palette, Trash2, UserRoundCog } from 'lucide-react';
+import { ImagePlus, Trash2, UserRoundCog } from 'lucide-react';
 import { MinistryBadge } from '@/components/shared/ministry-badge';
 import { ministryAssignmentLabel, vocalRangeLabel } from '@/lib/labels';
 import { supabase } from '@/lib/supabase';
@@ -10,7 +10,6 @@ import {
   applyTheme,
   loadUserPreferences,
   saveUserPreferences,
-  themeOptions,
   UserPreferences,
 } from '@/lib/user-preferences';
 import { cn } from '@/lib/utils';
@@ -72,7 +71,7 @@ export function SettingsPanel() {
 
     const nextPreferences = loadUserPreferences(currentUser.id);
     setPreferences(nextPreferences);
-    applyTheme(nextPreferences.theme);
+    applyTheme();
     setName(nextPreferences.displayName ?? currentUser.name);
     setAvatarUrl(nextPreferences.avatarUrl ?? '');
     setBirthday(selfProfile?.birthday ?? '');
@@ -196,39 +195,7 @@ export function SettingsPanel() {
   }
 
   return (
-    <section className="grid gap-3 xl:grid-cols-[360px_minmax(0,1fr)]">
-      <aside className="glass rounded-3xl p-4">
-        <div className="flex items-center gap-2">
-          <Palette size={18} />
-          <div>
-            <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Aparência</p>
-            <h2 className="text-2xl">Configurações</h2>
-          </div>
-        </div>
-
-        <div className="mt-4 space-y-2">
-          {themeOptions.map((option) => (
-            <button
-              key={option.id}
-              type="button"
-              onClick={() => {
-                const nextPreferences = { ...preferences, theme: option.id };
-                setPreferences(nextPreferences);
-                applyTheme(option.id);
-              }}
-              className={cn(
-                'w-full rounded-2xl border px-4 py-3 text-left text-sm transition',
-                preferences.theme === option.id
-                  ? 'border-[var(--foreground)] bg-[var(--foreground)] text-white'
-                  : 'border-[var(--line)] bg-[var(--surface-strong)]',
-              )}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-      </aside>
-
+    <section>
       <form onSubmit={handleSave} className="space-y-3">
         <section className="glass rounded-3xl p-5">
           <div className="flex items-center gap-2">

@@ -1,6 +1,6 @@
 'use client';
 
-export type KorusTheme = 'midnight' | 'cobalt' | 'graphite' | 'ivory' | 'aurora';
+export type KorusTheme = 'midnight';
 
 export interface UserPreferences {
   theme: KorusTheme;
@@ -11,20 +11,12 @@ export interface UserPreferences {
 const STORAGE_PREFIX = 'korus:user-preferences:';
 export const USER_PREFERENCES_EVENT = 'korus:user-preferences';
 
-export const themeOptions: Array<{ id: KorusTheme; label: string }> = [
-  { id: 'midnight', label: 'Midnight' },
-  { id: 'cobalt', label: 'Cobalt' },
-  { id: 'graphite', label: 'Graphite' },
-  { id: 'ivory', label: 'Ivory' },
-  { id: 'aurora', label: 'Aurora' },
-];
-
-export function applyTheme(theme: KorusTheme) {
+export function applyTheme() {
   if (typeof document === 'undefined') {
     return;
   }
 
-  document.documentElement.dataset.theme = theme;
+  document.documentElement.dataset.theme = 'midnight';
 }
 
 export function loadUserPreferences(userId: string): UserPreferences {
@@ -44,7 +36,7 @@ export function loadUserPreferences(userId: string): UserPreferences {
 
     const parsed = JSON.parse(raw) as Partial<UserPreferences>;
     return {
-      theme: parsed.theme ?? 'midnight',
+      theme: 'midnight',
       displayName: parsed.displayName,
       avatarUrl: parsed.avatarUrl,
     };
@@ -60,13 +52,18 @@ export function saveUserPreferences(userId: string, preferences: UserPreferences
     return;
   }
 
-  window.localStorage.setItem(`${STORAGE_PREFIX}${userId}`, JSON.stringify(preferences));
-  applyTheme(preferences.theme);
+  const normalizedPreferences = {
+    ...preferences,
+    theme: 'midnight' as const,
+  };
+
+  window.localStorage.setItem(`${STORAGE_PREFIX}${userId}`, JSON.stringify(normalizedPreferences));
+  applyTheme();
   window.dispatchEvent(
     new CustomEvent(USER_PREFERENCES_EVENT, {
       detail: {
         userId,
-        preferences,
+        preferences: normalizedPreferences,
       },
     }),
   );
