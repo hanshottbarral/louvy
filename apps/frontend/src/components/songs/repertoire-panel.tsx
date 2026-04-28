@@ -63,8 +63,10 @@ export function RepertoirePanel() {
   const [isAutofilling, setIsAutofilling] = useState(false);
   const [nameSuggestions, setNameSuggestions] = useState<SongSuggestion[]>([]);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+  const [isSavingSong, setIsSavingSong] = useState(false);
   const lastAutofilledUrl = useRef('');
   const autofillPromiseRef = useRef<Promise<YoutubeMetadata | null> | null>(null);
+  const isSavingSongRef = useRef(false);
   const deferredQuery = useDeferredValue(query);
 
   useEffect(() => {
@@ -302,56 +304,87 @@ export function RepertoirePanel() {
   const handleCreateSong = async (event: FormEvent) => {
     event.preventDefault();
 
-    const missingPrimaryMetadata = !name.trim() || !key.trim() || !bpm.trim() || !duration.trim();
-    let autofillResult: YoutubeMetadata | null = null;
-    if (youtubeUrl.trim() && (autofillPromiseRef.current || missingPrimaryMetadata)) {
-      autofillResult = autofillPromiseRef.current
-        ? await autofillPromiseRef.current
-        : await handleAutofillFromYoutube({ silentIfMissing: true, force: true });
-
-      if (autofillResult) {
-        applyAutofillPayload(autofillResult);
-      }
-    }
-
-    const finalName = autofillResult?.title || name;
-    const finalArtist = autofillResult?.artist || artist;
-    const finalKey = normalizeMusicalKey(autofillResult?.key || key);
-    const finalBpm =
-      autofillResult?.bpm != null ? String(autofillResult.bpm) : bpm;
-    const finalDuration =
-      autofillResult?.durationSeconds != null ? formatDuration(autofillResult.durationSeconds) : duration;
-    const finalCifraUrl = autofillResult?.cifraUrl || cifraUrl;
-    const finalTagsList =
-      autofillResult?.tags?.length
-        ? autofillResult.tags.map((item) => normalizeTagLabel(item)).filter(Boolean)
-        : tags
-            .split(',')
-            .map((item) => normalizeTagLabel(item))
-            .filter(Boolean);
-    const finalCategory =
-      category.trim() && category !== 'Geral'
-        ? category
-        : normalizeTagLabel(autofillResult?.tags?.[0] ?? category ?? 'Geral') || 'Geral';
-
-    const created = await saveRepertoireSong({
-      id: editingSongId ?? undefined,
-      name: finalName,
-      artist: finalArtist,
-      key: finalKey,
-      bpm: finalBpm ? Number(finalBpm) : null,
-      durationSeconds: parseDurationInput(finalDuration),
-      youtubeUrl,
-      cifraUrl: finalCifraUrl,
-      category: finalCategory,
-      tags: finalTagsList,
-    });
-
-    if (!created) {
+    if (isSavingSongRef.current) {
       return;
     }
 
-    resetComposer();
+    isSavingSongRef.current = true;
+    setIsSavingSong(true);
+    clearAuthMessage();
+
+    try {
+      const missingPrimaryMetadata = !name.trim() || !key.trim() || !bpm.trim() || !duration.trim();
+      let autofillResult: YoutubeMetadata | null = null;
+      if (youtubeUrl.trim() && (autofillPromiseRef.current || missingPrimaryMetadata)) {
+        autofillResult = autofillPromiseRef.current
+          ? await autofillPromiseRef.current
+          : await handleAutofillFromYoutube({ silentIfMissing: true, force: true });
+
+        if (autofillResult) {
+          applyAutofillPayload(autofillResult);
+        }
+      }
+
+      const finalName = autofillResult?.title || name;
+      const finalArtist = autofillResult?.artist || artist;
+      const finalKey = normalizeMusicalKey(autofillResult?.key || key);
+      const finalBpm =
+        autofillResult?.bpm != null ? String(autofillResult.bpm) : bpm;
+      const finalDuration =
+        autofillResult?.durationSeconds != null ? formatDuration(autofillResult.durationSeconds) : duration;
+      const finalCifraUrl = autofillResult?.cifraUrl || cifraUrl;
+      const finalTagsList =
+        autofillResult?.tags?.length
+          ? autofillResult.tags.map((item) => normalizeTagLabel(item)).filter(Boolean)
+          : tags
+              .split(',')
+              .map((item) => normalizeTagLabel(item))
+              .filter(Boolean);
+      const finalCategory =
+        category.trim() && category !== 'Geral'
+          ? category
+          : normalizeTagLabel(autofillResult?.tags?.[0] ?? category ?? 'Geral') || 'Geral';
+
+      const duplicate = !editingSongId
+        ? repertoire.find((song) => {
+            const sameYoutube =
+              youtubeUrl.trim() &&
+              song.youtubeUrl?.trim() &&
+              song.youtubeUrl.trim() === youtubeUrl.trim();
+            const sameIdentity =
+              song.name.trim().toLowerCase() === finalName.trim().toLowerCase() &&
+              (song.artist ?? '').trim().toLowerCase() === finalArtist.trim().toLowerCase();
+            return sameYoutube || sameIdentity;
+          })
+        : null;
+
+      if (duplicate) {
+        setAutofillMessage(`Essa música já existe no repertório como "${duplicate.name}".`);
+        return;
+      }
+
+      const created = await saveRepertoireSong({
+        id: editingSongId ?? undefined,
+        name: finalName,
+        artist: finalArtist,
+        key: finalKey,
+        bpm: finalBpm ? Number(finalBpm) : null,
+        durationSeconds: parseDurationInput(finalDuration),
+        youtubeUrl,
+        cifraUrl: finalCifraUrl,
+        category: finalCategory,
+        tags: finalTagsList,
+      });
+
+      if (!created) {
+        return;
+      }
+
+      resetComposer();
+    } finally {
+      isSavingSongRef.current = false;
+      setIsSavingSong(false);
+    }
   };
 
   return (
@@ -401,6 +434,10 @@ export function RepertoirePanel() {
                 <button
                   type="button"
                   onClick={() => {
+                    if (isSavingSong) {
+                      return;
+                    }
+
                     if (isCreatingRepertoireSong) {
                       closeRepertoireComposer();
                       resetComposer();
@@ -411,6 +448,7 @@ export function RepertoirePanel() {
                     openRepertoireComposer();
                   }}
                   className="rounded-full bg-[var(--foreground)] px-4 py-2 text-sm text-white"
+                  disabled={isSavingSong}
                 >
                   {isCreatingRepertoireSong ? 'Fechar' : 'Nova música'}
                 </button>
@@ -502,8 +540,16 @@ export function RepertoirePanel() {
                     </p>
                   ) : null}
                   <div className="md:col-span-2 flex justify-end">
-                    <button type="submit" className="rounded-2xl bg-[var(--foreground)] px-5 py-3 text-sm text-white">
-                      {editingSongId ? 'Salvar alterações' : 'Salvar música'}
+                    <button
+                      type="submit"
+                      disabled={isSavingSong}
+                      className="rounded-2xl bg-[var(--foreground)] px-5 py-3 text-sm text-white disabled:cursor-wait disabled:opacity-60"
+                    >
+                      {isSavingSong
+                        ? 'Salvando...'
+                        : editingSongId
+                          ? 'Salvar alterações'
+                          : 'Salvar música'}
                     </button>
                   </div>
                 </form>
