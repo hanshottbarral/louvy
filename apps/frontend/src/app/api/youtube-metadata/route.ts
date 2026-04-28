@@ -352,9 +352,15 @@ export async function GET(request: NextRequest) {
       searchSongBpm(`${inferred.artist ?? ''} ${inferred.title}`),
       searchDuckDuckGo(`${inferred.artist ?? ''} ${inferred.title} site:multitracks.com.br`),
     ]);
+    const matchingCifraResults = cifraResults.filter((result) =>
+      seemsMatchingSearchResult(result, inferred.artist, inferred.title),
+    );
+    const fallbackCifraUrl = matchingCifraResults.find(
+      (result) => result.url.includes('cifraclub.com.br') && /cifra club/i.test(result.title),
+    )?.url;
 
     const cifraPage = await findFirstMatchingPage(
-      cifraResults.filter((result) => seemsMatchingSearchResult(result, inferred.artist, inferred.title)),
+      matchingCifraResults,
       (item) => item.url.includes('cifraclub.com.br'),
       (html, resultUrl) => {
         const key = normalizeMusicalKey(parseCifraClubKey(html));
@@ -407,10 +413,10 @@ export async function GET(request: NextRequest) {
         suggestTagsFromYoutubeText(cifraPage?.description ?? ''),
         suggestTagsFromYoutubeText(multitracksPage?.description ?? ''),
       ),
-      cifraUrl: cifraPage?.url || undefined,
+      cifraUrl: cifraPage?.url || fallbackCifraUrl || undefined,
     };
 
-    if (payload.durationSeconds || payload.key || payload.bpm) {
+    if (payload.durationSeconds || payload.key || payload.bpm || payload.cifraUrl) {
       const previous = youtubeMetadataCache.get(videoId);
       youtubeMetadataCache.set(videoId, {
         ...previous,

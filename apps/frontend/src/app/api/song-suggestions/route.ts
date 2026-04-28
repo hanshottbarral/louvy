@@ -113,6 +113,13 @@ async function resolveSuggestionCifraUrl(artist?: string, title?: string) {
     seemsMatchingCifraResult(result, artist, title),
   );
 
+  const firstMatchingResult = candidates.find(
+    (candidate) => candidate.url.includes('cifraclub.com.br') && /cifra club/i.test(candidate.title),
+  );
+  if (firstMatchingResult) {
+    return firstMatchingResult.url;
+  }
+
   for (const candidate of candidates.slice(0, 3)) {
     try {
       const response = await fetch(candidate.url, {
