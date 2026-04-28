@@ -10,27 +10,9 @@ interface SongSuggestion {
   cifraUrl?: string;
 }
 
-function slugifyLookup(value: string) {
-  return value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/\([^)]*\)/g, ' ')
-    .replace(/\b(clipe|oficial|official|audio|video|ao vivo|live)\b/g, ' ')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .replace(/-{2,}/g, '-');
-}
-
-function buildCifraClubCandidates(artist?: string, title?: string) {
-  const artistSlug = slugifyLookup(artist ?? '');
-  const titleSlug = slugifyLookup(title ?? '');
-
-  if (!artistSlug || !titleSlug) {
-    return [];
-  }
-
-  return [`https://www.cifraclub.com.br/${artistSlug}/${titleSlug}/`];
+interface SearchResult {
+  url: string;
+  title: string;
 }
 
 async function fetchText(url: string, timeoutMs = 2500) {
@@ -66,12 +48,17 @@ async function searchDuckDuckGo(query: string) {
       `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`,
       1800,
     );
-    const urls = [...html.matchAll(/result__a" href="([^"]+)"/g)]
-      .map((match) => decodeDuckDuckGoHref(match[1]))
-      .filter((url) => url.includes('cifraclub.com.br'));
-    return Array.from(new Set(urls));
+    const results = [...html.matchAll(/result__a" href="([^"]+)"[^>]*>(.*?)<\/a>/g)]
+      .map((match) => ({
+        url: decodeDuckDuckGoHref(match[1]),
+        title: match[2].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(),
+      }))
+      .filter((result) => result.url.includes('cifraclub.com.br'));
+    return results.filter(
+      (result, index, all) => all.findIndex((entry) => entry.url === result.url) === index,
+    );
   } catch {
-    return [] as string[];
+    return [] as SearchResult[];
   }
 }
 
@@ -90,9 +77,31 @@ function isLikelyCifraClubSongPage(html: string) {
     html.includes('cifraclub.com.br') &&
     (/side-tom/i.test(html) ||
       /<pre[^>]+class="[^"]*cifra/i.test(html) ||
-      /<title>.*Cifra Club/i.test(html) ||
+      /<title>.* - Cifra Club/i.test(html) ||
       /name="description" content=".*cifra/i.test(html))
   );
+}
+
+function normalizeLookupText(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function seemsMatchingCifraResult(result: SearchResult, artist?: string, title?: string) {
+  const resultText = normalizeLookupText(`${result.title} ${result.url}`);
+  const normalizedArtist = normalizeLookupText(artist ?? '');
+  const normalizedTitle = normalizeLookupText(title ?? '');
+
+  if (!normalizedTitle || !resultText.includes(normalizedTitle)) {
+    return false;
+  }
+
+  return !normalizedArtist || resultText.includes(normalizedArtist);
 }
 
 async function resolveSuggestionCifraUrl(artist?: string, title?: string) {
@@ -100,20 +109,26 @@ async function resolveSuggestionCifraUrl(artist?: string, title?: string) {
     return undefined;
   }
 
-  const candidates = [
-    ...buildCifraClubCandidates(artist, title),
-    ...(await searchDuckDuckGo(`${artist} ${title} cifra club`)),
-  ];
+  const candidates = (await searchDuckDuckGo(`${artist} ${title} cifra club`)).filter((result) =>
+    seemsMatchingCifraResult(result, artist, title),
+  );
 
-  for (const url of Array.from(new Set(candidates)).slice(0, 3)) {
-    if (!url.includes('cifraclub.com.br')) {
-      continue;
-    }
-
+  for (const candidate of candidates.slice(0, 3)) {
     try {
-      const html = await fetchText(url, 2200);
-      if (parseCifraClubKey(html) || isLikelyCifraClubSongPage(html)) {
-        return url;
+      const response = await fetch(candidate.url, {
+        signal: AbortSignal.timeout(2200),
+        headers: {
+          'accept-language': 'pt-BR,pt;q=0.9,en;q=0.8',
+          'user-agent':
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        },
+        next: { revalidate: 0 },
+      });
+
+      const html = await response.text();
+      const titleMatch = html.match(/<title>(.*?)<\/title>/i)?.[1] ?? '';
+      if ((parseCifraClubKey(html) || isLikelyCifraClubSongPage(html)) && !/^Cifra Club\b/i.test(titleMatch)) {
+        return response.url;
       }
     } catch {
       continue;

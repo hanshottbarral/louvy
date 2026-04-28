@@ -36,6 +36,20 @@ function stripSongTitleNoise(value: string) {
     .trim();
 }
 
+function cleanAuthorName(value?: string) {
+  if (!value) {
+    return undefined;
+  }
+
+  return value
+    .replace(/\s*-\s*topic$/i, '')
+    .replace(/\s*vevo$/i, '')
+    .replace(/\s*oficial$/i, '')
+    .replace(/([a-zÀ-ÿ])([A-Z])/g, '$1 $2')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
 export function extractYoutubeVideoId(url: string) {
   try {
     const parsed = new URL(url);
@@ -55,11 +69,7 @@ export function extractYoutubeVideoId(url: string) {
 
 export function guessTitleAndArtist(rawTitle: string, authorName?: string) {
   const title = stripSongTitleNoise(rawTitle.trim());
-  const normalizedAuthor = authorName?.trim();
-  const cleanAuthor = normalizedAuthor
-    ?.replace(/\s*-\s*topic$/i, '')
-    .replace(/\s*oficial$/i, '')
-    .trim();
+  const cleanAuthor = cleanAuthorName(authorName?.trim());
   const separators = [' - ', ' | ', ' – ', ' — '];
 
   if (cleanAuthor) {

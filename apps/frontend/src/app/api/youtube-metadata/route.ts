@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
-  extractBpm,
-  extractKey,
   extractYoutubeVideoId,
   guessTitleAndArtist,
   suggestTagsFromYoutubeText,
@@ -11,6 +9,10 @@ import { normalizeMusicalKey, normalizeTagLabel } from '@/lib/utils';
 
 export const runtime = 'nodejs';
 const youtubeMetadataCache = new Map<string, YoutubeMetadata>();
+interface SearchResult {
+  url: string;
+  title: string;
+}
 
 function parseDurationSeconds(pageHtml: string) {
   const jsonLdDurationMatch = pageHtml.match(/"duration":"PT(?:(\d+)M)?(?:(\d+)S)?"/i);
@@ -99,12 +101,17 @@ async function searchDuckDuckGo(query: string) {
       undefined,
       2200,
     );
-    const urls = [...html.matchAll(/result__a" href="([^"]+)"/g)]
-      .map((match) => decodeDuckDuckGoHref(match[1]))
-      .filter(Boolean);
-    return Array.from(new Set(urls));
+    const results = [...html.matchAll(/result__a" href="([^"]+)"[^>]*>(.*?)<\/a>/g)]
+      .map((match) => ({
+        url: decodeDuckDuckGoHref(match[1]),
+        title: match[2].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(),
+      }))
+      .filter((result) => result.url);
+    return results.filter(
+      (result, index, all) => all.findIndex((entry) => entry.url === result.url) === index,
+    );
   } catch {
-    return [] as string[];
+    return [] as SearchResult[];
   }
 }
 
@@ -168,7 +175,7 @@ function isLikelyCifraClubSongPage(html: string) {
     html.includes('cifraclub.com.br') &&
     (/side-tom/i.test(html) ||
       /<pre[^>]+class="[^"]*cifra/i.test(html) ||
-      /<title>.*Cifra Club/i.test(html) ||
+      /<title>.* - Cifra Club/i.test(html) ||
       /name="description" content=".*cifra/i.test(html))
   );
 }
@@ -176,6 +183,10 @@ function isLikelyCifraClubSongPage(html: string) {
 function parseMetaDescription(html: string) {
   const descriptionMatch = html.match(/<meta name="description" content="([^"]+)"/i);
   return descriptionMatch?.[1] ?? '';
+}
+
+function parsePageTitle(html: string) {
+  return html.match(/<title>(.*?)<\/title>/i)?.[1]?.trim() ?? '';
 }
 
 function parseWatchTitle(html: string) {
@@ -196,6 +207,28 @@ function mergeTags(...tagArrays: Array<string[] | undefined>) {
         .map((tag) => normalizeTagLabel(tag as string)),
     ),
   );
+}
+
+function normalizeLookupText(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function seemsMatchingSearchResult(result: SearchResult, artist?: string, title?: string) {
+  const resultText = normalizeLookupText(`${result.title} ${result.url}`);
+  const normalizedArtist = normalizeLookupText(artist ?? '');
+  const normalizedTitle = normalizeLookupText(title ?? '');
+
+  if (!normalizedTitle || !resultText.includes(normalizedTitle)) {
+    return false;
+  }
+
+  return !normalizedArtist || resultText.includes(normalizedArtist);
 }
 
 async function searchSongBpm(query: string) {
@@ -236,39 +269,17 @@ async function searchSongBpm(query: string) {
   }
 }
 
-function slugifyLookup(value: string) {
-  return value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/\([^)]*\)/g, ' ')
-    .replace(/\b(clipe|oficial|official|audio|video|ao vivo|live)\b/g, ' ')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .replace(/-{2,}/g, '-');
-}
-
-function buildCifraClubCandidates(artist?: string, title?: string) {
-  const artistSlug = slugifyLookup(artist ?? '');
-  const titleSlug = slugifyLookup(title ?? '');
-
-  if (!artistSlug || !titleSlug) {
-    return [];
-  }
-
-  return [`https://www.cifraclub.com.br/${artistSlug}/${titleSlug}/`];
-}
-
 async function findFirstMatchingPage<T>(
-  urls: string[],
-  matcher: (url: string) => boolean,
-  parser: (html: string, url: string) => T | null,
+  urls: SearchResult[],
+  matcher: (result: SearchResult) => boolean,
+  parser: (html: string, url: string, result: SearchResult) => T | null,
   timeoutMs = 2500,
 ) {
-  for (const url of urls.filter(matcher).slice(0, 4)) {
+  for (const result of urls.filter(matcher).slice(0, 4)) {
     try {
+      const url = result.url;
       const html = await fetchText(url, undefined, timeoutMs);
-      const parsed = parser(html, url);
+      const parsed = parser(html, url, result);
       if (parsed) {
         return parsed;
       }
@@ -342,15 +353,15 @@ export async function GET(request: NextRequest) {
       searchDuckDuckGo(`${inferred.artist ?? ''} ${inferred.title} site:multitracks.com.br`),
     ]);
 
-    const cifraCandidates = [
-      ...buildCifraClubCandidates(inferred.artist, inferred.title),
-      ...cifraResults,
-    ];
     const cifraPage = await findFirstMatchingPage(
-      cifraCandidates,
-      (item) => item.includes('cifraclub.com.br'),
+      cifraResults.filter((result) => seemsMatchingSearchResult(result, inferred.artist, inferred.title)),
+      (item) => item.url.includes('cifraclub.com.br'),
       (html, resultUrl) => {
         const key = normalizeMusicalKey(parseCifraClubKey(html));
+        const pageTitle = parsePageTitle(html);
+        if (/^Cifra Club\b/i.test(pageTitle)) {
+          return null;
+        }
         if (!key && !isLikelyCifraClubSongPage(html)) {
           return null;
         }
@@ -365,14 +376,15 @@ export async function GET(request: NextRequest) {
     );
     const songBpmPage =
       songBpmResults
+        .filter((result) => seemsMatchingSearchResult({ url: result.url, title: result.text }, inferred.artist, inferred.title))
         .map((result) => ({
           ...parseSongBpmResultText(result.text),
           url: result.url,
         }))
         .find((result) => result.bpm || result.durationSeconds || result.key) ?? null;
     const multitracksPage = await findFirstMatchingPage(
-      multitracksResults,
-      (item) => item.includes('multitracks.com.br') || item.includes('multitracks.com'),
+      multitracksResults.filter((result) => seemsMatchingSearchResult(result, inferred.artist, inferred.title)),
+      (item) => item.url.includes('multitracks.com.br') || item.url.includes('multitracks.com'),
       (html, resultUrl) => ({
         url: resultUrl,
         description: parseMetaDescription(html),
@@ -388,19 +400,8 @@ export async function GET(request: NextRequest) {
         parseDurationSeconds(watchHtml) ??
         songBpmPage?.durationSeconds ??
         null,
-      key:
-        normalizeMusicalKey(
-          extractKey(
-            `${combinedText}\n${cifraPage?.description ?? ''}\n${multitracksPage?.description ?? ''}`,
-          ),
-        ) ||
-        cifraPage?.key ||
-        songBpmPage?.key ||
-        undefined,
-      bpm:
-        extractBpm(
-          `${combinedText}\n${cifraPage?.description ?? ''}\n${multitracksPage?.description ?? ''}`,
-        ) ?? songBpmPage?.bpm,
+      key: cifraPage?.key || songBpmPage?.key || undefined,
+      bpm: songBpmPage?.bpm ?? null,
       tags: mergeTags(
         baseTags,
         suggestTagsFromYoutubeText(cifraPage?.description ?? ''),
