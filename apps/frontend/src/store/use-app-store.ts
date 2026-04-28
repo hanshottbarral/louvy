@@ -311,6 +311,29 @@ async function fetchDataForUser(currentUser: SessionUser) {
   };
 }
 
+function sortRepertoireByName(repertoire: MinistrySongView[]) {
+  return [...repertoire].sort((left, right) =>
+    left.name.localeCompare(right.name, 'pt-BR', { sensitivity: 'base' }),
+  );
+}
+
+function buildLocalRepertoireSong(payload: RepertoireSongInput, songId: string): MinistrySongView {
+  return {
+    id: songId,
+    name: payload.name.trim() || 'Nova música',
+    artist: payload.artist?.trim() || undefined,
+    key: payload.key.trim() || 'C',
+    bpm: payload.bpm ?? null,
+    durationSeconds: payload.durationSeconds ?? null,
+    youtubeUrl: payload.youtubeUrl?.trim() || null,
+    cifraUrl: payload.cifraUrl?.trim() || null,
+    position: 0,
+    category: normalizeTagLabel(payload.category || 'Geral') || 'Geral',
+    lastPlayed: new Date().toISOString().slice(0, 10),
+    tags: payload.tags.map((tag) => normalizeTagLabel(tag)).filter(Boolean),
+  };
+}
+
 async function fetchScheduleMessages(scheduleId: string) {
   const { data: messagesData, error: messagesError } = await supabase
     .from('messages')
@@ -1028,10 +1051,15 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     try {
       const result = await insertRepertoireSong(normalizedPayload, currentUser.id);
-      await get().refreshData();
+      const localSong = buildLocalRepertoireSong(normalizedPayload, result.id);
       set({
         activeSection: 'repertoire',
         isCreatingRepertoireSong: false,
+        repertoire: sortRepertoireByName(
+          payload.id
+            ? get().repertoire.map((song) => (song.id === result.id ? { ...song, ...localSong } : song))
+            : [...get().repertoire, localSong],
+        ),
         authMessage: result.usedLegacyFallback
           ? payload.id
             ? 'Música atualizada. Para persistir artista e duração no banco, aplique o patch SQL novo do repertório.'
@@ -1040,6 +1068,15 @@ export const useAppStore = create<AppState>((set, get) => ({
             ? 'Música atualizada.'
           : undefined,
       });
+
+      void fetchRepertoireLibrary()
+        .then((repertoire) => {
+          set({ repertoire });
+        })
+        .catch(() => {
+          // Mantém a atualização local se a sincronização leve falhar.
+        });
+
       return result.id;
     } catch (error) {
       set({ authMessage: error instanceof Error ? error.message : 'Não consegui salvar esta música.' });
@@ -1067,8 +1104,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       return;
     }
 
-    await get().refreshData();
-    set({ authMessage: 'Música removida do repertório.' });
+    set({
+      repertoire: get().repertoire.filter((song) => song.id !== songId),
+      authMessage: 'Música removida do repertório.',
+    });
   },
   reorderSongs: async (scheduleId, songIds) => {
     const currentUser = get().currentUser;
