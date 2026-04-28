@@ -10,6 +10,32 @@ export interface YoutubeMetadata {
   cifraUrl?: string;
 }
 
+function stripSongTitleNoise(value: string) {
+  return value
+    .replace(/\[(.*?)\]/g, ' ')
+    .replace(/\((.*?)\)/g, (full, inner: string) => {
+      const normalized = inner
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase();
+
+      if (
+        /\b(clipe|clip|oficial|official|audio|video|live|ao vivo|letra|lyrics?|legendado|playback|cover|versao|versão)\b/.test(
+          normalized,
+        )
+      ) {
+        return ' ';
+      }
+
+      return full;
+    })
+    .replace(/\b(clipe oficial|video oficial|vídeo oficial|audio oficial|official video|official audio|official music video)\b/gi, ' ')
+    .replace(/\b(letra|lyrics?|lyric video|videolyric|video lyric|ao vivo|live session|session)\b/gi, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/\s*-\s*$/g, '')
+    .trim();
+}
+
 export function extractYoutubeVideoId(url: string) {
   try {
     const parsed = new URL(url);
@@ -28,7 +54,7 @@ export function extractYoutubeVideoId(url: string) {
 }
 
 export function guessTitleAndArtist(rawTitle: string, authorName?: string) {
-  const title = rawTitle.trim();
+  const title = stripSongTitleNoise(rawTitle.trim());
   const normalizedAuthor = authorName?.trim();
   const cleanAuthor = normalizedAuthor
     ?.replace(/\s*-\s*topic$/i, '')
@@ -44,7 +70,7 @@ export function guessTitleAndArtist(rawTitle: string, authorName?: string) {
       if (prefixedByAuthor.test(title)) {
         return {
           artist: cleanAuthor,
-          title: title.replace(prefixedByAuthor, '').trim(),
+          title: stripSongTitleNoise(title.replace(prefixedByAuthor, '').trim()),
         };
       }
 
@@ -52,14 +78,14 @@ export function guessTitleAndArtist(rawTitle: string, authorName?: string) {
       if (suffixedByAuthor.test(title)) {
         return {
           artist: cleanAuthor,
-          title: title.replace(suffixedByAuthor, '').trim(),
+          title: stripSongTitleNoise(title.replace(suffixedByAuthor, '').trim()),
         };
       }
     }
 
     return {
       artist: cleanAuthor,
-      title,
+      title: stripSongTitleNoise(title),
     };
   }
 
@@ -71,7 +97,7 @@ export function guessTitleAndArtist(rawTitle: string, authorName?: string) {
       if (left.trim() && right) {
         return {
           artist: left.trim(),
-          title: right,
+          title: stripSongTitleNoise(right),
         };
       }
     }
@@ -79,7 +105,7 @@ export function guessTitleAndArtist(rawTitle: string, authorName?: string) {
 
   return {
     artist: cleanAuthor || undefined,
-    title,
+    title: stripSongTitleNoise(title),
   };
 }
 
