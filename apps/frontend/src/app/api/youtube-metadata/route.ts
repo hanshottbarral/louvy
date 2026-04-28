@@ -163,6 +163,16 @@ function parseCifraClubKey(html: string) {
   return inlineTomMatch?.[1]?.toUpperCase() || '';
 }
 
+function isLikelyCifraClubSongPage(html: string) {
+  return (
+    html.includes('cifraclub.com.br') &&
+    (/side-tom/i.test(html) ||
+      /<pre[^>]+class="[^"]*cifra/i.test(html) ||
+      /<title>.*Cifra Club/i.test(html) ||
+      /name="description" content=".*cifra/i.test(html))
+  );
+}
+
 function parseMetaDescription(html: string) {
   const descriptionMatch = html.match(/<meta name="description" content="([^"]+)"/i);
   return descriptionMatch?.[1] ?? '';
@@ -341,7 +351,7 @@ export async function GET(request: NextRequest) {
       (item) => item.includes('cifraclub.com.br'),
       (html, resultUrl) => {
         const key = normalizeMusicalKey(parseCifraClubKey(html));
-        if (!key) {
+        if (!key && !isLikelyCifraClubSongPage(html)) {
           return null;
         }
 

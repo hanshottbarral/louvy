@@ -85,6 +85,16 @@ function parseCifraClubKey(html: string) {
   return inlineTomMatch?.[1]?.toUpperCase() || '';
 }
 
+function isLikelyCifraClubSongPage(html: string) {
+  return (
+    html.includes('cifraclub.com.br') &&
+    (/side-tom/i.test(html) ||
+      /<pre[^>]+class="[^"]*cifra/i.test(html) ||
+      /<title>.*Cifra Club/i.test(html) ||
+      /name="description" content=".*cifra/i.test(html))
+  );
+}
+
 async function resolveSuggestionCifraUrl(artist?: string, title?: string) {
   if (!artist || !title) {
     return undefined;
@@ -102,7 +112,7 @@ async function resolveSuggestionCifraUrl(artist?: string, title?: string) {
 
     try {
       const html = await fetchText(url, 2200);
-      if (parseCifraClubKey(html)) {
+      if (parseCifraClubKey(html) || isLikelyCifraClubSongPage(html)) {
         return url;
       }
     } catch {
