@@ -91,7 +91,7 @@ export function Sidebar() {
           </div>
           <div>
             <p className="text-[10px] uppercase tracking-[0.22em] text-white/45">KORUS</p>
-            <h1 className="mt-1 text-lg" data-display="true">Control hub</h1>
+            <h1 className="mt-1 text-lg" data-display="true">Tudo em harmonia.</h1>
           </div>
         </div>
         {activeSection === 'schedules' || activeSection === 'repertoire' ? (

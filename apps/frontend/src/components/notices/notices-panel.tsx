@@ -117,7 +117,7 @@ export function NoticesPanel() {
             Olá, {currentUser?.name?.split(' ')[0] || 'time'}
           </h2>
           <p className="mt-2 max-w-2xl text-sm text-[var(--muted)]">
-            Avisos, próximos compromissos e atalhos rápidos do seu workspace KORUS.
+            Avisos, próximos compromissos e atalhos rápidos da sua plataforma KORUS.
           </p>
 
           <div className="mt-5 grid gap-3 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">

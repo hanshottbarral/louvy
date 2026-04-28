@@ -15,7 +15,7 @@ const poppins = Poppins({
 
 export const metadata: Metadata = {
   title: 'KORUS',
-  description: 'Coordenação de escalas, repertório e comunicação em um workspace premium.',
+  description: 'KORUS. Tudo em harmonia.',
   icons: {
     icon: [
       { url: '/brand/favicon-32.png', sizes: '32x32', type: 'image/png' },

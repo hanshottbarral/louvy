@@ -32,7 +32,7 @@ export function AuthPanel() {
       <section className="glass w-full max-w-[500px] rounded-[30px] p-7">
         <KorusWordmark tone="dark" className="h-auto w-[224px]" />
         <h1 className="mt-6 text-3xl" data-display="true">
-          {authMode === 'login' ? 'Entrar no workspace' : 'Criar acesso'}
+          {authMode === 'login' ? 'Entrar na plataforma' : 'Criar acesso'}
         </h1>
         <p className="mt-2 text-sm text-[var(--muted)]">
           {authMode === 'login'

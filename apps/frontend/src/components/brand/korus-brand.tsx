@@ -115,7 +115,7 @@ export function KorusWordmark({
         letterSpacing="0.18em"
         textAnchor={stacked ? 'middle' : 'start'}
       >
-        TEAM SOUND COLLABORATION
+        Tudo em harmonia.
       </text>
     </svg>
   );

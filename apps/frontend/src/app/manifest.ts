@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'KORUS',
     short_name: 'KORUS',
-    description: 'Workspace premium para escalas, repertório e colaboração musical.',
+    description: 'KORUS. Tudo em harmonia.',
     start_url: '/',
     display: 'standalone',
     background_color: '#121212',
