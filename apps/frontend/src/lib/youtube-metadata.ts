@@ -29,7 +29,39 @@ export function extractYoutubeVideoId(url: string) {
 
 export function guessTitleAndArtist(rawTitle: string, authorName?: string) {
   const title = rawTitle.trim();
+  const normalizedAuthor = authorName?.trim();
+  const cleanAuthor = normalizedAuthor
+    ?.replace(/\s*-\s*topic$/i, '')
+    .replace(/\s*oficial$/i, '')
+    .trim();
   const separators = [' - ', ' | ', ' – ', ' — '];
+
+  if (cleanAuthor) {
+    const escapedAuthor = cleanAuthor.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    for (const separator of separators) {
+      const prefixedByAuthor = new RegExp(`^${escapedAuthor}\\s*${separator.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'i');
+      if (prefixedByAuthor.test(title)) {
+        return {
+          artist: cleanAuthor,
+          title: title.replace(prefixedByAuthor, '').trim(),
+        };
+      }
+
+      const suffixedByAuthor = new RegExp(`${separator.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*${escapedAuthor}$`, 'i');
+      if (suffixedByAuthor.test(title)) {
+        return {
+          artist: cleanAuthor,
+          title: title.replace(suffixedByAuthor, '').trim(),
+        };
+      }
+    }
+
+    return {
+      artist: cleanAuthor,
+      title,
+    };
+  }
 
   for (const separator of separators) {
     if (title.includes(separator)) {
@@ -46,7 +78,7 @@ export function guessTitleAndArtist(rawTitle: string, authorName?: string) {
   }
 
   return {
-    artist: authorName?.trim() || undefined,
+    artist: cleanAuthor || undefined,
     title,
   };
 }
