@@ -116,9 +116,10 @@ export function normalizeMusicalKey(value?: string | null) {
     return '';
   }
 
-  const match = normalized.match(/^([A-Ga-g])([#b]?)(m?)$/);
+  const sanitized = normalized.replace(/♯/g, '#').replace(/♭/g, 'b');
+  const match = sanitized.match(/^([A-Ga-g])([#b]?)([mM]?)$/);
   if (!match) {
-    return normalized;
+    return sanitized;
   }
 
   const [, note, accidental, minor] = match;

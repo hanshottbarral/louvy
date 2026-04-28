@@ -219,7 +219,7 @@ export function RepertoirePanel() {
 
         applyAutofillPayload(payload);
         lastAutofilledUrl.current = normalizedUrl;
-        setAutofillMessage('Dados puxados do link. Tags sugeridas automaticamente; ajuste o que precisar antes de salvar.');
+        setAutofillMessage('Link carregado.');
         return payload;
       } catch {
         setAutofillMessage('Não consegui consultar o link agora. Tente de novo em instantes.');

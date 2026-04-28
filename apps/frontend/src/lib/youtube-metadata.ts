@@ -1,3 +1,5 @@
+import { normalizeMusicalKey } from '@/lib/utils';
+
 export interface YoutubeMetadata {
   title: string;
   artist?: string;
@@ -59,7 +61,7 @@ export function extractKey(text: string) {
     text.match(/\b(?:tom|key|tone)[:\s-]*([A-G](?:#|b)?m?)\b/i) ??
     text.match(/\b([A-G](?:#|b)?m?)\s*(?:tom|key)\b/i);
 
-  return match ? match[1].toUpperCase() : '';
+  return match ? normalizeMusicalKey(match[1]) : '';
 }
 
 export function suggestTagsFromYoutubeText(text: string) {
