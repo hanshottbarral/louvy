@@ -16,6 +16,7 @@ import { AppRole } from '@louvy/shared';
 import {
   formatDuration,
   formatScheduleDate,
+  normalizeMusicalKey,
   normalizeTagLabel,
   parseDurationInput,
   prettifyChurchText,
@@ -54,6 +55,7 @@ export function RepertoirePanel() {
   const [autofillMessage, setAutofillMessage] = useState('');
   const [isAutofilling, setIsAutofilling] = useState(false);
   const lastAutofilledUrl = useRef('');
+  const autofillPromiseRef = useRef<Promise<YoutubeMetadata | null> | null>(null);
   const deferredQuery = useDeferredValue(query);
 
   useEffect(() => {
@@ -97,7 +99,7 @@ export function RepertoirePanel() {
 
     const timeout = window.setTimeout(() => {
       void handleAutofillFromYoutube({ silentIfMissing: true });
-    }, 700);
+    }, 180);
 
     return () => window.clearTimeout(timeout);
   }, [youtubeUrl]);
@@ -156,68 +158,128 @@ export function RepertoirePanel() {
     await reorderSongs(targetSchedule.id, reordered.map((song) => song.id));
   };
 
-  const handleAutofillFromYoutube = async (options?: { silentIfMissing?: boolean }) => {
-    const normalizedUrl = youtubeUrl.trim();
+  const applyAutofillPayload = (payload: YoutubeMetadata) => {
+    setName(payload.title || '');
+    setArtist(payload.artist || '');
+    setKey(normalizeMusicalKey(payload.key || ''));
+    setBpm(payload.bpm ? String(payload.bpm) : '');
+    setDuration(payload.durationSeconds ? formatDuration(payload.durationSeconds) : '');
+    setCifraUrl(payload.cifraUrl || '');
+    setTags((payload.tags ?? []).map((tag) => normalizeTagLabel(tag)).join(', '));
+    if (!category.trim() || category === 'Geral') {
+      setCategory(normalizeTagLabel(payload.tags?.[0] ?? 'Geral') || 'Geral');
+    }
+  };
+
+  const handleAutofillFromYoutube = async (options?: {
+    silentIfMissing?: boolean;
+    force?: boolean;
+    urlOverride?: string;
+  }) => {
+    const normalizedUrl = (options?.urlOverride ?? youtubeUrl).trim();
 
     if (!normalizedUrl) {
       if (!options?.silentIfMissing) {
         setAutofillMessage('Cole primeiro um link do YouTube.');
       }
-      return;
+      return null;
     }
 
-    if (normalizedUrl === lastAutofilledUrl.current && name.trim()) {
-      return;
+    if (!options?.force && normalizedUrl === lastAutofilledUrl.current && name.trim()) {
+      return {
+        title: name,
+        artist,
+        key,
+        bpm: bpm ? Number(bpm) : null,
+        durationSeconds: parseDurationInput(duration),
+        cifraUrl,
+        tags: tags
+          .split(',')
+          .map((item) => normalizeTagLabel(item))
+          .filter(Boolean),
+      } satisfies YoutubeMetadata;
     }
 
-    setIsAutofilling(true);
-    setAutofillMessage('');
+    const pendingRequest = (async () => {
+      setIsAutofilling(true);
+      setAutofillMessage('');
 
-    try {
-      const response = await fetch(`/api/youtube-metadata?url=${encodeURIComponent(normalizedUrl)}`);
-      const payload = (await response.json()) as YoutubeMetadata & { error?: string };
+      try {
+        const response = await fetch(`/api/youtube-metadata?url=${encodeURIComponent(normalizedUrl)}`);
+        const payload = (await response.json()) as YoutubeMetadata & { error?: string };
 
-      if (!response.ok) {
-        setAutofillMessage(payload.error ?? 'Não consegui ler esse vídeo agora.');
-        return;
+        if (!response.ok) {
+          setAutofillMessage(payload.error ?? 'Não consegui ler esse vídeo agora.');
+          return null;
+        }
+
+        applyAutofillPayload(payload);
+        lastAutofilledUrl.current = normalizedUrl;
+        setAutofillMessage('Dados puxados do link. Tags sugeridas automaticamente; ajuste o que precisar antes de salvar.');
+        return payload;
+      } catch {
+        setAutofillMessage('Não consegui consultar o link agora. Tente de novo em instantes.');
+        return null;
+      } finally {
+        setIsAutofilling(false);
       }
+    })();
 
-      setName(payload.title || '');
-      setArtist(payload.artist || '');
-      setKey(payload.key || '');
-      setBpm(payload.bpm ? String(payload.bpm) : '');
-      setDuration(payload.durationSeconds ? formatDuration(payload.durationSeconds) : '');
-      setCifraUrl(payload.cifraUrl || '');
-      setTags((payload.tags ?? []).map((tag) => normalizeTagLabel(tag)).join(', '));
-      if (!category.trim() || category === 'Geral') {
-        setCategory(normalizeTagLabel(payload.tags?.[0] ?? 'Geral') || 'Geral');
-      }
-      lastAutofilledUrl.current = normalizedUrl;
-      setAutofillMessage('Dados puxados do link. Tags sugeridas automaticamente; ajuste o que precisar antes de salvar.');
-    } catch {
-      setAutofillMessage('Não consegui consultar o link agora. Tente de novo em instantes.');
-    } finally {
-      setIsAutofilling(false);
+    autofillPromiseRef.current = pendingRequest;
+    const result = await pendingRequest;
+    if (autofillPromiseRef.current === pendingRequest) {
+      autofillPromiseRef.current = null;
     }
+
+    return result;
   };
 
   const handleCreateSong = async (event: FormEvent) => {
     event.preventDefault();
 
+    const missingPrimaryMetadata = !name.trim() || !key.trim() || !bpm.trim() || !duration.trim();
+    let autofillResult: YoutubeMetadata | null = null;
+    if (youtubeUrl.trim() && (autofillPromiseRef.current || missingPrimaryMetadata)) {
+      autofillResult = autofillPromiseRef.current
+        ? await autofillPromiseRef.current
+        : await handleAutofillFromYoutube({ silentIfMissing: true, force: true });
+
+      if (autofillResult) {
+        applyAutofillPayload(autofillResult);
+      }
+    }
+
+    const finalName = autofillResult?.title || name;
+    const finalArtist = autofillResult?.artist || artist;
+    const finalKey = normalizeMusicalKey(autofillResult?.key || key);
+    const finalBpm =
+      autofillResult?.bpm != null ? String(autofillResult.bpm) : bpm;
+    const finalDuration =
+      autofillResult?.durationSeconds != null ? formatDuration(autofillResult.durationSeconds) : duration;
+    const finalCifraUrl = autofillResult?.cifraUrl || cifraUrl;
+    const finalTagsList =
+      autofillResult?.tags?.length
+        ? autofillResult.tags.map((item) => normalizeTagLabel(item)).filter(Boolean)
+        : tags
+            .split(',')
+            .map((item) => normalizeTagLabel(item))
+            .filter(Boolean);
+    const finalCategory =
+      category.trim() && category !== 'Geral'
+        ? category
+        : normalizeTagLabel(autofillResult?.tags?.[0] ?? category ?? 'Geral') || 'Geral';
+
     const created = await saveRepertoireSong({
       id: editingSongId ?? undefined,
-      name,
-      artist,
-      key,
-      bpm: bpm ? Number(bpm) : null,
-      durationSeconds: parseDurationInput(duration),
+      name: finalName,
+      artist: finalArtist,
+      key: finalKey,
+      bpm: finalBpm ? Number(finalBpm) : null,
+      durationSeconds: parseDurationInput(finalDuration),
       youtubeUrl,
-      cifraUrl,
-      category,
-      tags: tags
-        .split(',')
-        .map((item) => normalizeTagLabel(item))
-        .filter(Boolean),
+      cifraUrl: finalCifraUrl,
+      category: finalCategory,
+      tags: finalTagsList,
     });
 
     if (!created) {
@@ -304,6 +366,20 @@ export function RepertoirePanel() {
                       if (lastAutofilledUrl.current !== event.target.value.trim()) {
                         lastAutofilledUrl.current = '';
                       }
+                    }}
+                    onPaste={(event) => {
+                      const pastedValue = event.clipboardData.getData('text').trim();
+                      if (!pastedValue) {
+                        return;
+                      }
+
+                      window.setTimeout(() => {
+                        void handleAutofillFromYoutube({
+                          silentIfMissing: true,
+                          force: true,
+                          urlOverride: pastedValue,
+                        });
+                      }, 0);
                     }}
                     placeholder="Link do YouTube"
                     className="rounded-2xl border border-[var(--line)] bg-white px-4 py-3 outline-none md:col-span-2"

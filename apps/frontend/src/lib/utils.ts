@@ -110,6 +110,21 @@ export function parseDurationInput(value: string) {
   return null;
 }
 
+export function normalizeMusicalKey(value?: string | null) {
+  const normalized = value?.trim();
+  if (!normalized) {
+    return '';
+  }
+
+  const match = normalized.match(/^([A-Ga-g])([#b]?)(m?)$/);
+  if (!match) {
+    return normalized;
+  }
+
+  const [, note, accidental, minor] = match;
+  return `${note.toUpperCase()}${accidental ?? ''}${minor ? 'm' : ''}`;
+}
+
 const churchWordReplacements: Array<[RegExp, string]> = [
   [/\bAdoracao\b/gi, 'Adoração'],
   [/\bCelebracao\b/gi, 'Celebração'],
