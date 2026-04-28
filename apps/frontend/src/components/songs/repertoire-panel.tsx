@@ -29,6 +29,7 @@ interface SongSuggestion {
   title: string;
   artist?: string;
   youtubeUrl: string;
+  cifraUrl?: string;
 }
 
 export function RepertoirePanel() {
@@ -194,6 +195,7 @@ export function RepertoirePanel() {
     setName(suggestion.title);
     setArtist(suggestion.artist ?? '');
     setYoutubeUrl(suggestion.youtubeUrl);
+    setCifraUrl(suggestion.cifraUrl ?? '');
     setNameSuggestions([]);
     clearAuthMessage();
 
