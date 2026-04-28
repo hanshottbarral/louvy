@@ -53,6 +53,7 @@ interface AppState {
   typingUser?: string;
   loadingScheduleMessages: boolean;
   loadedMessageScheduleIds: string[];
+  clearAuthMessage: () => void;
   bootstrap: () => Promise<void>;
   refreshData: () => Promise<void>;
   loadScheduleMessages: (scheduleId: string, options?: { force?: boolean }) => Promise<void>;
@@ -359,6 +360,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   typingUser: undefined,
   loadingScheduleMessages: false,
   loadedMessageScheduleIds: [],
+  clearAuthMessage: () => set({ authMessage: undefined }),
   bootstrap: async () => {
     if (bootstrapInFlight) {
       return bootstrapInFlight;

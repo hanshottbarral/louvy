@@ -36,6 +36,7 @@ export function RepertoirePanel() {
   const deleteRepertoireSong = useAppStore((state) => state.deleteRepertoireSong);
   const currentUser = useAppStore((state) => state.currentUser);
   const authMessage = useAppStore((state) => state.authMessage);
+  const clearAuthMessage = useAppStore((state) => state.clearAuthMessage);
   const isCreatingRepertoireSong = useAppStore((state) => state.isCreatingRepertoireSong);
   const openRepertoireComposer = useAppStore((state) => state.openRepertoireComposer);
   const closeRepertoireComposer = useAppStore((state) => state.closeRepertoireComposer);
@@ -117,6 +118,7 @@ export function RepertoirePanel() {
     setTags('');
     setAutofillMessage('');
     lastAutofilledUrl.current = '';
+    clearAuthMessage();
   };
 
   const openSongForEditing = (songId: string) => {
@@ -137,6 +139,7 @@ export function RepertoirePanel() {
     setTags(song.tags.map((tag) => normalizeTagLabel(tag)).join(', '));
     setAutofillMessage('Você está editando uma música já cadastrada.');
     lastAutofilledUrl.current = song.youtubeUrl ?? '';
+    clearAuthMessage();
     openRepertoireComposer();
   };
 
@@ -203,6 +206,7 @@ export function RepertoirePanel() {
     const pendingRequest = (async () => {
       setIsAutofilling(true);
       setAutofillMessage('');
+      clearAuthMessage();
 
       try {
         const response = await fetch(`/api/youtube-metadata?url=${encodeURIComponent(normalizedUrl)}`);
@@ -363,6 +367,7 @@ export function RepertoirePanel() {
                     value={youtubeUrl}
                     onChange={(event) => {
                       setYoutubeUrl(event.target.value);
+                      clearAuthMessage();
                       if (lastAutofilledUrl.current !== event.target.value.trim()) {
                         lastAutofilledUrl.current = '';
                       }
